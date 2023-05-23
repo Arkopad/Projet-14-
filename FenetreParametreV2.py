@@ -43,7 +43,6 @@ class App():
 
     def plot(self,canvas,ax):
 
-
         ax.clear()
         # dessin du silo dans le tableau graphique matplot
         # on trouve le x du debut du trou pour les deux parois:
@@ -51,24 +50,81 @@ class App():
         x_debut_du_trou_droite = (self.debut_du_trou - self.OrdOrigine)/-self.CoeffDir
         X1 = np.linspace(self.largeur_silo_gauche, x_debut_du_trou_gauche, 100)
         X2 = np.linspace(x_debut_du_trou_droite, self.largeur_silo_droite, 100)
-        plt.plot(X1, self.paroiGauche(X1), color='black')
-        plt.plot(X2, self.paroiDroite(X2), color='black')
+        plt.plot(X1, self.paroiGauche(X1), color='#EEEEEE')
+        plt.plot(X2, self.paroiDroite(X2), color='#EEEEEE')
         X3 = np.linspace(-self.largeurBac/2, self.largeurBac/2, 100)
         Y3 = np.zeros(100) + self.hauteur_bac
-        plt.plot(X3, Y3, color='black')
+        plt.plot(X3, Y3, color='#EEEEEE')
         plt.grid()
         plt.tight_layout()                                          # On supprime les marges de la figure
         ax.set_aspect('equal')
         canvas.draw()
 
-    def creerWidgets(self):
+    def getParametres(self):
+        """
+        Récupère les paramètres du fichier parametres.csv
+        :paramètres: self : la fenêtre racine
+        :return:
+        """
+        try :                                                       # On essaye d'ouvrir le fichier parametres.csv     
 
-        def kill(*event):
+            fichier = open("parametres.csv", "r+")                  # 
 
-            self.run = False
-            self.racine.destroy()
-            self.racine.quit()
+        except FileNotFoundError:                                   # Si le fichier n'existe pas
+
+            fichier = open("parametres.csv", "w+")                  # On le crée
+            fichier.close()                                         # On le ferme
+            fichier = open("parametres.csv", "r+")                  # On le réouvre en lecture
+
+        parametres = fichier.read().split(";")                      # On lit le fichier et on récupère les paramètres
+        fichier.close()                                             # On ferme le fichier
+
+        if parametres == ['']:                                      # Si le fichier est vide
+            
+            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4"]   # On initialise les paramètres
+
+        try:                                                        # On essaye de convertir les paramètres en entier
+
+            self.CoeffDir = float(parametres[0])                          # On récupère les paramètres
+            self.OrdOrigine = float(parametres[1])                        # 
+            self.debut_du_trou = float(parametres[2])                     #
+            self.largeurBac = float(parametres[3])                        #
+            self.hauteur_bac = float(parametres[4])                       #
+        
+        except Exception as erreur:                                 # Si les paramètres ne sont pas des entiers
+            
+            print("Erreur : le fichier parametres.csv est corrompu, les paramètres ont été réinitialisés\nDétail de l'erreur : ", erreur)   # On affiche un message d'erreur
+            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4"]            # On initialise les paramètres
+            fichier = open("parametres.csv", "w+")                  # On ouvre le fichier en écriture
+            fichier.write(";".join(parametres))                     # On écrit les paramètres dans le fichier
+            fichier.close()                                         # On ferme le fichier
+            self.getParametres()                                    # On rappelle la fonction pour récupérer les paramètres
+
+
+    def save(self, *event):
+        """
+        Sauvegarde les paramètres dans le fichier parametres.csv
+        :paramètres:
+        :return:
+        """
+        fichier = open("parametres.csv", "w+")          # On ouvre le fichier parametres.csv en écriture et on le crée s'il n'existe pas et on écrit les paramètres dedans
+        fichier.write("{CoeffDir};{OrdOrigine};{debut_du_trou};{largeurBac};{hauteur_bac}".format(CoeffDir = self.CoeffDir, 
+                                                                                                  OrdOrigine = self.OrdOrigine, 
+                                                                                                  debut_du_trou = self.debut_du_trou, 
+                                                                                                  largeurBac = self.largeurBac, 
+                                                                                                  hauteur_bac = self.hauteur_bac))
+        fichier.close()                                 # On ferme le fichier
+        self.kill()
     
+    def kill(self, *event):
+
+        self.run = False
+        self.racine.destroy()
+        self.racine.quit()
+
+    def creerWidgets(self):
+        
+        self.getParametres()
         # create label for game options
         options_label = tk.Label(self.racine, text="Paramètre de la modélisation", font="Lucida 16 bold", bg = '#393E46', fg= '#EEEEEE', pady=10)
         options_label.pack(side=tk.TOP, fill='x')
@@ -77,7 +133,7 @@ class App():
         CoeffDirLabel = tk.Label(self.racine, text="Coeff. dir.:", font="Lucida 10 bold", bg = '#222831', fg= '#EEEEEE')
         CoeffDirLabel.pack(side=tk.TOP, fill='x')
 
-        validateButton = tk.Button(self.racine, text="Enregistrer", bg = '#D65A31', fg= '#EEEEEE', bd=0, font ='Lucida 16 bold', command=kill)
+        validateButton = tk.Button(self.racine, text="Enregistrer", bg = '#D65A31', fg= '#EEEEEE', bd=0, font ='Lucida 16 bold', command=self.save)
         validateButton.pack(side=tk.BOTTOM, fill='x')
         
         def setCoeffDir(*event):   
@@ -155,20 +211,30 @@ class App():
         self.fig, self.ax = plt.subplots()
         self.ax.set_aspect('equal')
         self.fig.patch.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
+        self.ax.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
+        self.ax.tick_params(axis='x', colors='white')
+        self.ax.tick_params(axis='y', colors='white')
+        self.ax.xaxis.label.set_color('white')
+        self.ax.yaxis.label.set_color('white')
+        self.ax.xaxis.label.set_color('#EEEEEE')
+        self.ax.grid(alpha=0.1)
         # dessin du silo dans le tableau graphique matplot
         # on trouve le x du debut du trou pour les deux parois:
         x_debut_du_trou_gauche = (self.debut_du_trou - self.OrdOrigine)/self.CoeffDir
         x_debut_du_trou_droite = (self.debut_du_trou - self.OrdOrigine)/self.CoeffDir
         X1 = np.linspace(self.largeur_silo_gauche, x_debut_du_trou_gauche, 100)
         X2 = np.linspace(x_debut_du_trou_droite, self.largeur_silo_droite, 100)
-        plt.plot(X1, self.paroiGauche(X1), color='black')
-        plt.plot(X2, self.paroiDroite(X2), color='black')
+        plt.plot(X1, self.paroiGauche(X1), color='#EEEEEE')
+        plt.plot(X2, self.paroiDroite(X2), color='#EEEEEE')
         X3 = np.linspace(-self.largeurBac/2, self.largeurBac/2, 100)
         Y3 = np.zeros(100) + self.hauteur_bac
-        plt.plot(X3, Y3, color='black')
+        plt.plot(X3, Y3, color='#EEEEEE')
         plt.grid()
         plt.tight_layout()                                          # On supprime les marges de la figure
 
         self.canvas=FigureCanvasTkAgg(self.fig, master=self.racine)
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill='x')
         self.canvas.draw()
+
+app = App()
+app.racine.mainloop()
