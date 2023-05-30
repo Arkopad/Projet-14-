@@ -15,27 +15,22 @@ class App():
         moniteurHeight = self.racine.winfo_screenheight() # Hauteur de l'écran
         self.racine.geometry(f"1000x800+{moniteurWidth//2-500}+{moniteurHeight//2-400}")
         self.racine.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.getParametres()
         self.limite_bas = -1  #m
         self.limite_haut = 2 #m
-        self.limite_gauche = -1 #m
-        self.limite_droite = 1 #m
+        self.limite_gauche = -2 #m
+        self.limite_droite = 2 #m
         self.largeur_silo_gauche = -1 #m
         self.largeur_silo_droite = 1 #m
-        self.debutTrou = 0.7 #m en y
         # On définit les droites des parois des silos comme des droites de la forme y = Ax + C afin de mettre sous la forme -Ax + y - C = 0
-        self.CoeffDir, self.OrdOrigine = -1/0.6, 0.5
         self.paroiGauche = lambda x : self.CoeffDir*x + self.OrdOrigine
         self.vecteur_directeur_paroi_gauche = np.array([1.0, self.CoeffDir])/ np.sqrt(1 + (self.CoeffDir)**2) #pointe vers le haut, normalisé
         self.vecteur_orthogonal_paroi_gauche = np.array([-self.CoeffDir, 1.0]) #pointe vers l'intérieur du silo, normalisé
         self.paroiDroite = lambda x : -self.CoeffDir*x + self.OrdOrigine
         self.vecteur_directeur_paroi_droite = np.array([1.0, -self.CoeffDir])/ np.sqrt(1 + (self.CoeffDir)**2) #pointe vers le haut, normalisé
         self.vecteur_orthogonal_paroi_droite = np.array([-self.CoeffDir, 1.0]) #pointe vers l'intérieur du silo, normalisé
-        self.hauteur = 1.5
-        self.hauteurBac = 0.4 #m
-        self.largeurBac = 0.5 #m
 
         self.rayon = 6e-3 #m
-        self.nbGrains = 100
     
         self.run = True
 
@@ -122,6 +117,7 @@ class App():
 
         except FileNotFoundError:                                   # Si le fichier n'existe pas
 
+            print('e')
             fichier = open("parametres.csv", "w+")                  # On le crée
             fichier.close()                                         # On le ferme
             fichier = open("parametres.csv", "r+")                  # On le réouvre en lecture
@@ -131,7 +127,7 @@ class App():
 
         if parametres == ['']:                                      # Si le fichier est vide
             
-            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4", "50","1.5"]   # On initialise les paramètres
+            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4", "50", "1.5"]   # On initialise les paramètres
 
         try:                                                        # On essaye de convertir les paramètres en entier
 
@@ -146,7 +142,7 @@ class App():
         except Exception as erreur:                                 # Si les paramètres ne sont pas des entiers
             
             print("Erreur : le fichier parametres.csv est corrompu, les paramètres ont été réinitialisés\nDétail de l'erreur : ", erreur)   # On affiche un message d'erreur
-            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4", "50","1.5"]            # On initialise les paramètres
+            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4", "50", "1.5"]            # On initialise les paramètres
             fichier = open("parametres.csv", "w+")                  # On ouvre le fichier en écriture
             fichier.write(";".join(parametres))                     # On écrit les paramètres dans le fichier
             fichier.close()                                         # On ferme le fichier
@@ -159,13 +155,15 @@ class App():
         :paramètres:
         :return:
         """
-        print("zz")
+ 
         fichier = open("parametres.csv", "w+")          # On ouvre le fichier parametres.csv en écriture et on le crée s'il n'existe pas et on écrit les paramètres dedans
-        fichier.write("{CoeffDir};{OrdOrigine};{debutTrou};{largeurBac};{hauteurBac}".format(CoeffDir = self.CoeffDir, 
+        fichier.write("{CoeffDir};{OrdOrigine};{debutTrou};{largeurBac};{hauteurBac};{nbGrains};{hauteur}".format(CoeffDir = self.CoeffDir, 
                                                                                                   OrdOrigine = self.OrdOrigine, 
                                                                                                   debutTrou = self.debutTrou, 
                                                                                                   largeurBac = self.largeurBac, 
-                                                                                                  hauteurBac = self.hauteurBac))
+                                                                                                  hauteurBac = self.hauteurBac,
+                                                                                                  nbGrains = self.nbGrains,
+                                                                                                  hauteur = self.hauteur))
         fichier.close()                                 # On ferme le fichier
         self.kill()
     
@@ -177,7 +175,6 @@ class App():
 
     def creerWidgets(self):
         
-        self.getParametres()
         # create label for game options
         options_label = tk.Label(self.racine, text="Paramètre de la modélisation", font="Lucida 16 bold", bg = '#393E46', fg= '#EEEEEE', pady=10)
         options_label.pack(side=tk.TOP, fill='x')
@@ -450,6 +447,3 @@ class App():
         validateButton = tk.Button(self.racine, text="Enregistrer", bg = '#D65A31', fg= '#EEEEEE', bd=0, font ='Lucida 16 bold', command=self.save)
         self.racine.bind("<Return>", self.save)
         validateButton.pack(side=tk.BOTTOM, fill='x')
-
-app = App()
-app.racine.mainloop()
