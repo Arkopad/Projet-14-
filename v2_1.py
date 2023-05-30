@@ -589,8 +589,8 @@ def resultante_et_actualisation_2(coefficient_frottement, CONTACT, POSITION, VIT
                         force_normale = -raideur_normale * allongement * vecteur_normal_inter_grain
                         force_contact += force_normale
                         
-                        """
-                        # Effort tangentiel:
+                        
+                        """# Effort tangentiel:
                         allongement_tangentiel = allongement_tangentiel_grain_grain(grain1, grain2, POSITION, VITESSE, pas_de_temps, indice_impact, indice_temps)
                         vecteur_tangentiel_inter_grain = np.array([-vecteur_normal_inter_grain[1], vecteur_normal_inter_grain[0]])
                         #On inverse la vecteur tangentiel si il s'oppose à la vitesse relative:
@@ -609,8 +609,8 @@ def resultante_et_actualisation_2(coefficient_frottement, CONTACT, POSITION, VIT
                             force_contact += force_tangentielle
                         else:
                             force_tangentielle = np.sign(allongement_tangentiel * -raideur_tangentielle) * coefficient_frottement * np.linalg.norm(force_normale) * vecteur_tangentiel_inter_grain
-                            force_contact += force_tangentielle
-                    """
+                            force_contact += force_tangentielle"""
+                    
 
                     # Mise à jour de la résultante des forces sur grain1
                     force_resultante += force_contact
@@ -701,13 +701,13 @@ if __name__ == "__main__":
     # Définition grain
     nb_grains = app.nbGrains
     rayon = 5e-3 #m
-    rho = 800 #kg/m3
+    rho = 770 #kg/m3
     RAYON = np.random.uniform(low=rayon*0.8, high=rayon*1.2, size=nb_grains)
     MASSE = rho * 4/3 * pi * RAYON**3
     raideur_normale = rho #N/m
     raideur_tangentielle = (1/2)*raideur_normale #N/m
     coefficient_trainee = 0.47
-    AMORTISSEMENT = np.sqrt(raideur_normale*MASSE)*0.2
+    AMORTISSEMENT = np.sqrt(raideur_normale*MASSE)
 
     # ESPACE
     limite_bas = app.limite_bas  #m
