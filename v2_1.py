@@ -111,7 +111,7 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
         #texts.append(ax.text(POSITION[0, grain, 0], POSITION[0, grain, 1], str(grain), ha='center', va='center', fontsize=8, color='white'))
     
     time_text = ax.text(0.05, 0.99, '', transform=ax.transAxes, verticalalignment='top', fontsize=12, color='#EEEEEE')
-    accelerateur = 5
+    accelerateur = 100
     def animate(i):
         time_text.set_text(f'Indice temps: {i*accelerateur}/{nb_temps}, temps(s): {i*accelerateur*pas_de_temps:.2f}/{nb_temps*pas_de_temps:.2f}')
         for grain in range(nb_grains):
@@ -731,7 +731,7 @@ if __name__ == "__main__":
     temps = 0
     indice_temps = 0
     pas_de_temps = (1/raideur_normale)/5 #s
-    duree_simulation = 2 #s
+    duree_simulation = 10 #s
     nb_temps = int(duree_simulation/pas_de_temps)
 
 
