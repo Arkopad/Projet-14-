@@ -7,7 +7,7 @@ from matplotlib import animation
 import time
 from numba import njit
 from tqdm import tqdm
-from FenetreParametreC import App
+from FenetreParametre import App
 from numpy import pi
 import matplotlib.cm as cm
 import matplotlib.colors as colors
@@ -42,20 +42,30 @@ def trajectoire(POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGa
     x_debut_du_trou_droite = (debut_du_trou - Cdroite)/Adroite
     X1 = np.linspace(limite_gauche, x_debut_du_trou_gauche, 100)
     X2 = np.linspace(x_debut_du_trou_droite, limite_droite, 100)
-    plt.plot(X1, paroiGauche(X1), color='black')
-    plt.plot(X2, paroiDroite(X2), color='black')
+    plt.plot(X1, paroiGauche(X1), color='#EEEEEE')
+    plt.plot(X2, paroiDroite(X2), color='#EEEEEE')
 
     # dessin du bac de reception
     X3 = np.linspace(-largeur_bac_gauche, largeur_bac_gauche, 100)
     Y3 = np.zeros(100) + hauteur_bac
-    plt.plot(X3, Y3, color='black')
+    plt.plot(X3, Y3, color='#EEEEEE')
     
     for grain in range(nb_grains):
         ax.plot(POSITION[:, grain, 0], POSITION[:, grain, 1], label="grain {}".format(grain))
 
-    plt.grid()
+    fig.patch.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
+    ax.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
+    ax.tick_params(axis='x', colors='white')
+    ax.tick_params(axis='y', colors='white')
+    ax.xaxis.label.set_color('white')
+    ax.yaxis.label.set_color('white')
+    ax.xaxis.label.set_color('#EEEEEE')
+    ax.grid(alpha=0.1)
+    plt.xlim([limite_gauche, limite_droite])
+    plt.ylim([limite_bas, limite_haut])
     plt.legend()
     plt.show()
+
 
 def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, largeur_silo_gauche, largeur_silo_droite, nb_temps, pas_de_temps):
     """
@@ -84,16 +94,16 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     x_debut_du_trou_droite = (debut_du_trou - Cdroite)/Adroite
     X1 = np.linspace(largeur_silo_gauche, x_debut_du_trou_gauche, 100)
     X2 = np.linspace(x_debut_du_trou_droite, largeur_silo_droite, 100)
-    plt.plot(X1, paroiGauche(X1), color='black')
-    plt.plot(X2, paroiDroite(X2), color='black')
+    plt.plot(X1, paroiGauche(X1), color='#EEEEEE')
+    plt.plot(X2, paroiDroite(X2), color='#EEEEEE')
     
     # dessin du bac de reception
     X3 = np.linspace(-largeur_bac_gauche, largeur_bac_gauche, 100)
     Y3 = np.zeros(100) + hauteur_bac
-    plt.plot(X3, Y3, color='black')
+    plt.plot(X3, Y3, color='#EEEEEE')
 
     # dessin des grains dans le tableau graphique matplot
-    couleurs = ['black', 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'orange', 'purple', 'brown']
+    couleurs = ['#EEEEEE', 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'orange', 'purple', 'brown']
     grains = []
     texts = []
     for grain in range(nb_grains):
@@ -118,7 +128,20 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     norm = colors.Normalize(vmin=np.min(abs(VITESSE)), vmax=np.max(abs(VITESSE)))
     # Création de l'échelle de couleur
     cmap = cm.ScalarMappable(norm=norm, cmap='jet')
-    plt.colorbar(cmap, label='Vitesse')
+    cb = plt.colorbar(cmap)
+    cb.set_label('Vitesse', color='#EEEEEE')
+    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'), color="#EEEEEE")
+    cb.ax.yaxis.set_tick_params(color='#EEEEEE')
+    fig.patch.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
+    ax.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
+    ax.tick_params(axis='x', colors='white')
+    ax.tick_params(axis='y', colors='white')
+    ax.xaxis.label.set_color('white')
+    ax.yaxis.label.set_color('white')
+    ax.xaxis.label.set_color('#EEEEEE')
+    ax.grid(alpha=0.1)
+    plt.xlim([limite_gauche, limite_droite])
+    plt.ylim([limite_bas, limite_haut])
     plt.show()
 
 
@@ -652,15 +675,6 @@ ALLONGEMENT = np.zeros((nb_grains, nb_grains+2, 2), dtype=np.float64)
 
 mise_a_jour = np.array([1 for i in range(nb_grains)])  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
 
-# Affichage des infos implicites:
-print(f"nombre de grain: {nb_grains}")
-print(f"pas de temps: {pas_de_temps:.2E} s.")
-print(f"nombre de temps: {nb_temps}.")
-print(f"raideur normale: {raideur_normale:.2E} N/m.")
-print(f"masse moyenne des grains: {np.mean(MASSE):.2E} kg.")
-print(f"rayon moyen des grains: {np.mean(RAYON):.2E} m.")
-print(f"amoortissement moyen: {np.mean(AMORTISSEMENT):.2E} Ns/m.")
-
 
 
     #-------------------------------------------------------------------------------------------------------------------------------------------#
@@ -672,12 +686,73 @@ print(f"amoortissement moyen: {np.mean(AMORTISSEMENT):.2E} Ns/m.")
 if __name__ == "__main__":
 
 
+    app = App()
+    app.racine.mainloop()
+
+    # Définition grain
+    nb_grains = app.nbGrains
+    rayon = 5e-3 #m
+    rho = 770 #kg/m3
+    RAYON = np.random.uniform(low=rayon*0.8, high=rayon*1.2, size=nb_grains)
+    MASSE = rho * 4/3 * pi * RAYON**3
+    raideur_normale = rho #N/m
+    raideur_tangentielle = (1/2)*raideur_normale #N/m
+    coefficient_trainee = 0.47
+    AMORTISSEMENT = np.sqrt(raideur_normale*MASSE)
+
+    # ESPACE
+    limite_bas = app.limite_bas  #m
+    limite_haut = app.limite_haut #m
+    limite_gauche = app.limite_gauche #m
+    limite_droite = app.limite_droite #m
+    coefficient_frottement = 0.5
+    # Definition bac de réception
+    hauteur_bac = app.hauteurBac #m
+    largeur_bac_gauche = app.largeurBac/2 #m
+    largeur_bac_droite = app.largeurBac/2 #m
+    # Définition de la grille
+    c = 2*rayon*1.2 #pas d'espace de la grille en m
+    # On définit une grille pour discrétiser l'espace selon le pas d'espace c, a chaque case on met la liste des grains qui sont dans cette case
+    nb_cases_x = int((limite_droite - limite_gauche)/c) + 2
+    nb_cases_y = int((limite_haut - limite_bas)/c) + 2
+    GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=int) #on définit une grille vide #ancienne version : GRILLE = {(i,j):[] for i in range(int(limite_gauche/c)-1, int(limite_droite/c)+2) for j in range(int(limite_bas/c)-1, int(limite_haut/c)+2)}
+
+
+    # TEMPS
+    temps = 0
+    indice_temps = 0
+    pas_de_temps = (1/raideur_normale)/5 #s
+    duree_simulation = 10 #s
+    nb_temps = int(duree_simulation/pas_de_temps)
+
+
+    #TABLEAUX DE DONNEES:
+    POSITION = np.zeros((nb_temps, nb_grains, 2))   
+    VITESSE = np.zeros((nb_temps, nb_grains, 2))
+    VITESSE_DEMI_PAS = np.zeros((nb_temps, nb_grains, 2))
+    ACCELERATION = np.zeros((nb_temps, nb_grains, 2))
+    CONTACT = np.zeros((nb_grains, nb_grains+2, 2), dtype=np.int64)
+
+    mise_a_jour = np.array([1 for i in range(nb_grains)])  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
+
+    # Affichage des infos implicites:
+    print(f"nombre de grain: {nb_grains}")
+    print(f"pas de temps: {pas_de_temps:.2E} s.")
+    print(f"nombre de temps: {nb_temps}.")
+    print(f"raideur normale: {raideur_normale:.2E} N/m.")
+    print(f"masse moyenne des grains: {np.mean(MASSE):.2E} kg.")
+    print(f"rayon moyen des grains: {np.mean(RAYON):.2E} m.")
+    print(f"amoortissement moyen: {np.mean(AMORTISSEMENT):.2E} Ns/m.")
+
     # On définit les droites des parois des silos comme des droites de la forme y = Ax + C afin de mettre sous la forme -Ax + y - C = 0
-    Agauche = -1.66
-    Cgauche = 0.5
-    Adroite = 1.66
-    Cdroite = 0.5
-    debut_du_trou = 0.57
+
+    CoeffDir = app.CoeffDir
+    OrdOrigine = app.OrdOrigine
+    debut_du_trou = app.debutTrou
+    Agauche = CoeffDir
+    Adroite = -CoeffDir
+    Cgauche = OrdOrigine
+    Cdroite = OrdOrigine
 
     paroiGauche = lambda x : Agauche*x + Cgauche
     vecteur_directeur_paroi_gauche = np.array([1.0, Agauche])/ np.sqrt(1 + (Agauche)**2) #pointe vers le haut, normalisé
@@ -687,11 +762,8 @@ if __name__ == "__main__":
     vecteur_orthogonal_paroi_droite = np.array([-Adroite, 1.0])/ np.sqrt(1 + (Agauche)**2) #pointe vers l'intérieur du silo, normalisé
     vecteur_tangent_paroi_gauche = np.array([-vecteur_orthogonal_paroi_gauche[1], vecteur_orthogonal_paroi_gauche[0]])
     vecteur_tangent_paroi_droite = np.array([-vecteur_orthogonal_paroi_droite[1], vecteur_orthogonal_paroi_droite[0]])
-
-    
-
     #Positionnement initiale des grains
-    hauteur = 0.7 #m
+    hauteur = app.hauteur #m
     gauche = (hauteur - Cgauche)/Agauche + rayon*1.3
     droite = (hauteur - Cdroite)/Adroite - rayon*1.3
     grain = 0 # compteur grain
