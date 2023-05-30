@@ -63,7 +63,6 @@ def trajectoire(POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGa
     ax.grid(alpha=0.1)
     plt.xlim([limite_gauche, limite_droite])
     plt.ylim([limite_bas, limite_haut])
-    plt.grid()
     plt.legend()
     plt.show()
 
@@ -109,9 +108,9 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     texts = []
     for grain in range(nb_grains):
         grains.append(ax.add_patch(patches.Circle((POSITION[0, grain, 0], POSITION[0, grain, 1]), radius=RAYON[grain], fill=True, color=couleurs[grain%len(couleurs)])))
-        texts.append(ax.text(POSITION[0, grain, 0], POSITION[0, grain, 1], str(grain), ha='center', va='center', fontsize=8, color='white'))
+        #texts.append(ax.text(POSITION[0, grain, 0], POSITION[0, grain, 1], str(grain), ha='center', va='center', fontsize=8, color='white'))
     
-    time_text = ax.text(0.05, 0.99, '', transform=ax.transAxes, verticalalignment='top', fontsize=12)
+    time_text = ax.text(0.05, 0.99, '', transform=ax.transAxes, verticalalignment='top', fontsize=12, color='#EEEEEE')
     accelerateur = 5
     def animate(i):
         time_text.set_text(f'Indice temps: {i*accelerateur}/{nb_temps}, temps(s): {i*accelerateur*pas_de_temps:.2f}/{nb_temps*pas_de_temps:.2f}')
@@ -129,8 +128,11 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     norm = colors.Normalize(vmin=np.min(abs(VITESSE)), vmax=np.max(abs(VITESSE)))
     # Création de l'échelle de couleur
     cmap = cm.ScalarMappable(norm=norm, cmap='jet')
-    plt.colorbar(cmap, label='Vitesse')
-
+    # Affichage de l'échelle de couleur
+    cb = plt.colorbar(cmap)
+    cb.set_label('Vitesse', color='#EEEEEE')
+    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'), color="#EEEEEE")
+    cb.ax.yaxis.set_tick_params(color='#EEEEEE')
     fig.patch.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
     ax.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
     ax.tick_params(axis='x', colors='white')
