@@ -42,20 +42,31 @@ def trajectoire(POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGa
     x_debut_du_trou_droite = (debut_du_trou - Cdroite)/Adroite
     X1 = np.linspace(limite_gauche, x_debut_du_trou_gauche, 100)
     X2 = np.linspace(x_debut_du_trou_droite, limite_droite, 100)
-    plt.plot(X1, paroiGauche(X1), color='black')
-    plt.plot(X2, paroiDroite(X2), color='black')
+    plt.plot(X1, paroiGauche(X1), color='#EEEEEE')
+    plt.plot(X2, paroiDroite(X2), color='#EEEEEE')
 
     # dessin du bac de reception
     X3 = np.linspace(-largeur_bac_gauche, largeur_bac_gauche, 100)
     Y3 = np.zeros(100) + hauteur_bac
-    plt.plot(X3, Y3, color='black')
+    plt.plot(X3, Y3, color='#EEEEEE')
     
     for grain in range(nb_grains):
         ax.plot(POSITION[:, grain, 0], POSITION[:, grain, 1], label="grain {}".format(grain))
 
+    fig.patch.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
+    ax.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
+    ax.tick_params(axis='x', colors='white')
+    ax.tick_params(axis='y', colors='white')
+    ax.xaxis.label.set_color('white')
+    ax.yaxis.label.set_color('white')
+    ax.xaxis.label.set_color('#EEEEEE')
+    ax.grid(alpha=0.1)
+    plt.xlim([limite_gauche, limite_droite])
+    plt.ylim([limite_bas, limite_haut])
     plt.grid()
     plt.legend()
     plt.show()
+
 
 def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, largeur_silo_gauche, largeur_silo_droite, nb_temps, pas_de_temps):
     """
@@ -84,16 +95,16 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     x_debut_du_trou_droite = (debut_du_trou - Cdroite)/Adroite
     X1 = np.linspace(largeur_silo_gauche, x_debut_du_trou_gauche, 100)
     X2 = np.linspace(x_debut_du_trou_droite, largeur_silo_droite, 100)
-    plt.plot(X1, paroiGauche(X1), color='black')
-    plt.plot(X2, paroiDroite(X2), color='black')
+    plt.plot(X1, paroiGauche(X1), color='#EEEEEE')
+    plt.plot(X2, paroiDroite(X2), color='#EEEEEE')
     
     # dessin du bac de reception
     X3 = np.linspace(-largeur_bac_gauche, largeur_bac_gauche, 100)
     Y3 = np.zeros(100) + hauteur_bac
-    plt.plot(X3, Y3, color='black')
+    plt.plot(X3, Y3, color='#EEEEEE')
 
     # dessin des grains dans le tableau graphique matplot
-    couleurs = ['black', 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'orange', 'purple', 'brown']
+    couleurs = ['#EEEEEE', 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'orange', 'purple', 'brown']
     grains = []
     texts = []
     for grain in range(nb_grains):
@@ -119,8 +130,18 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     # Création de l'échelle de couleur
     cmap = cm.ScalarMappable(norm=norm, cmap='jet')
     plt.colorbar(cmap, label='Vitesse')
-    plt.show()
 
+    fig.patch.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
+    ax.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
+    ax.tick_params(axis='x', colors='white')
+    ax.tick_params(axis='y', colors='white')
+    ax.xaxis.label.set_color('white')
+    ax.yaxis.label.set_color('white')
+    ax.xaxis.label.set_color('#EEEEEE')
+    ax.grid(alpha=0.1)
+    plt.xlim([limite_gauche, limite_droite])
+    plt.ylim([limite_bas, limite_haut])
+    plt.show()
 
 
 
