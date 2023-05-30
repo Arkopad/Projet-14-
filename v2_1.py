@@ -105,13 +105,13 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     # dessin des grains dans le tableau graphique matplot
     couleurs = ['#EEEEEE', 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'orange', 'purple', 'brown']
     grains = []
-    texts = []
+    #texts = []
     for grain in range(nb_grains):
         grains.append(ax.add_patch(patches.Circle((POSITION[0, grain, 0], POSITION[0, grain, 1]), radius=RAYON[grain], fill=True, color=couleurs[grain%len(couleurs)])))
         #texts.append(ax.text(POSITION[0, grain, 0], POSITION[0, grain, 1], str(grain), ha='center', va='center', fontsize=8, color='white'))
     
     time_text = ax.text(0.05, 0.99, '', transform=ax.transAxes, verticalalignment='top', fontsize=12, color='#EEEEEE')
-    accelerateur = 100
+    accelerateur = 25
     def animate(i):
         time_text.set_text(f'Indice temps: {i*accelerateur}/{nb_temps}, temps(s): {i*accelerateur*pas_de_temps:.2f}/{nb_temps*pas_de_temps:.2f}')
         for grain in range(nb_grains):
@@ -128,7 +128,6 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     norm = colors.Normalize(vmin=np.min(abs(VITESSE)), vmax=np.max(abs(VITESSE)))
     # Création de l'échelle de couleur
     cmap = cm.ScalarMappable(norm=norm, cmap='jet')
-    # Affichage de l'échelle de couleur
     cb = plt.colorbar(cmap)
     cb.set_label('Vitesse', color='#EEEEEE')
     plt.setp(plt.getp(cb.ax.axes, 'yticklabels'), color="#EEEEEE")
@@ -144,6 +143,7 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     plt.xlim([limite_gauche, limite_droite])
     plt.ylim([limite_bas, limite_haut])
     plt.show()
+
 
 
 
@@ -237,72 +237,24 @@ def allongement_normal_grain_paroidroite(position, rayon, Adroite, Cdroite):
     return penetration_droite
 
 @njit
-def allongement_tangentiel_grain_paroi_gauche(vecteur_tangent_paroi_gauche, indice_temps, VITESSE, grain, pas_de_temps, indice_impact):
+def allongement_tangentiel_grain_paroi_gauche(vitesse_i, vecteur_tangent_paroi_gauche, pas_de_temps, allongement_tangentiel):
     """
     """
 
-    #On calcule l'allongement tangentiel:
-    produit_scalaire_array = np.zeros(indice_temps+1) #on va jusqu'a l'indice temps actuel car en fait on a déjà mis à jour les positions dans l'actualisation 1
-    for tps in range(indice_impact, indice_temps+1):
-        vitesse_grain = VITESSE[tps,grain]
+    produit_scalaire = np.dot(vitesse_i , vecteur_tangent_paroi_gauche)
 
-        #Inversion du vecteur normal s'il s'oppose à la vitesse:
-        if np.dot(vecteur_tangent_paroi_gauche, vitesse_grain) < 0:
-            vecteur_tangent_paroi_gauche = -vecteur_tangent_paroi_gauche
-
-        vitesse_relative = vitesse_grain
-        produit_scalaire_array[tps] = np.dot(vitesse_relative, vecteur_tangent_paroi_gauche)
-        
-    # On doit maintenant intégrer la valeur de la vitesse tangentielle sur le temps
-    allongement_tangentiel = 0
-    for i in range(len(produit_scalaire_array)):
-        allongement_tangentiel += produit_scalaire_array[i]
-    allongement_tangentiel *= pas_de_temps
-
-    return allongement_tangentiel
+    return allongement_tangentiel + produit_scalaire*pas_de_temps
 
 @njit
-def allongement_tangentiel_grain_paroi_droite(vecteur_tangent_paroi_droite, indice_temps, VITESSE, grain, pas_de_temps, indice_impact):
+def allongement_tangentiel_grain_paroi_droite(vitesse_i, vecteur_tangent_paroi_droite, pas_de_temps, allongement_tangentiel):
     """
     """
+    produit_scalaire = np.dot(vitesse_i , vecteur_tangent_paroi_droite)
 
-    #On calcule l'allongement tangentiel:
-    produit_scalaire_array = np.zeros(indice_temps+1) #on va jusqu'a l'indice temps actuel car en fait on a déjà mis à jour les positions dans l'actualisation 1
-    for tps in range(indice_impact, indice_temps+1):
-        vitesse_grain = VITESSE[tps,grain]
-
-        #Inversion du vecteur normal s'il s'oppose à la vitesse:
-        if np.dot(vecteur_tangent_paroi_droite, vitesse_grain) < 0:
-            vecteur_tangent_paroi_droite = -vecteur_tangent_paroi_droite
-
-        vitesse_relative = vitesse_grain
-        produit_scalaire_array[tps] = np.dot(vitesse_relative, vecteur_tangent_paroi_droite)
-        
-    # On doit maintenant intégrer la valeur de la vitesse tangentielle sur le temps
-    allongement_tangentiel = 0
-    for i in range(len(produit_scalaire_array)):
-        allongement_tangentiel += produit_scalaire_array[i]
-    allongement_tangentiel *= pas_de_temps
-
-    return allongement_tangentiel
+    return allongement_tangentiel + produit_scalaire*pas_de_temps
 
 @njit
-def derivee_allongement_normal_grain_grain(vitesse_i, vitesse_j, vecteur_normal):
-    """
-    Calcul de la dérivée de l'allongement/distance normal à partir de l'équation
-    Paramètres
-    ==========
-
-    Retour
-    ======
-    """
-    vitesse_relative = vitesse_i - vitesse_j
-    derivee_allongement = np.dot(vitesse_relative, vecteur_normal)
-        
-    return derivee_allongement
-
-@njit
-def allongement_tangentiel_grain_grain(i, j, POSITION, VITESSE, pas_de_temps, indice_impact, indice_temps):
+def allongement_tangentiel_grain_grain(position_i, position_j, vitesse_i, vitesse_j, pas_de_temps, allongement_tangentiel):
     """
     Calcul de l'allongement tangentiel entre deux grains i et j à partir de l'équation
 
@@ -318,29 +270,26 @@ def allongement_tangentiel_grain_grain(i, j, POSITION, VITESSE, pas_de_temps, in
     ======
     allongement_tangentiel : float, allongement tangentiel entre les grains i et j
     """
-    produit_scalaire_array = np.zeros(indice_temps+1) # On prend en compte l'indice temps actuel car on a déjà mis à jour les positions dans l'actualisation 1
-    for tps_actuel in range(indice_impact, indice_temps+1):
-        position_i = POSITION[tps_actuel,i]
-        position_j = POSITION[tps_actuel,j]
-        vitesse_i = VITESSE[tps_actuel,i]
-        vitesse_j = VITESSE[tps_actuel,j]
-        vecteur_normal = (position_i - position_j)/(np.linalg.norm(position_i - position_j))
-        vecteur_tangent = np.array([-vecteur_normal[1], vecteur_normal[0]])
+    vecteur_normal = (position_i - position_j)/(np.linalg.norm(position_i - position_j))
+    vecteur_tangent = np.array([-vecteur_normal[1], vecteur_normal[0]])
+    produit_scalaire = np.dot(vitesse_i - vitesse_j, vecteur_tangent)
 
-        # Inversion du vecteur tangentiel s'il s'oppose à la vitesse:
-        if np.dot(vecteur_tangent, vitesse_i) < 0:
-            vecteur_tangent = -vecteur_tangent
-        vitesse_relative = vitesse_i - vitesse_j
-        produit_scalaire = np.dot(vitesse_relative, vecteur_tangent)
-        produit_scalaire_array[tps_actuel] = produit_scalaire
+    return allongement_tangentiel + produit_scalaire*pas_de_temps
+
+@njit
+def derivee_allongement_normal_grain_grain(vitesse_i, vitesse_j, vecteur_normal):
+    """
+    Calcul de la dérivée de l'allongement/distance normal à partir de l'équation
+    Paramètres
+    ==========
+
+    Retour
+    ======
+    """
+    vitesse_relative = vitesse_i - vitesse_j
+    derivee_allongement = np.dot(vitesse_relative, vecteur_normal)
         
-    # On doit maintenant intégrer la valeur de la vitesse tangentielle sur le temps
-    allongement_tangentiel = 0
-    for k in range(len(produit_scalaire_array)):
-        allongement_tangentiel += produit_scalaire_array[k]
-    allongement_tangentiel *= pas_de_temps
-
-    return allongement_tangentiel
+    return derivee_allongement
 
 @njit
 def actualisation_1(mise_a_jour, POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATION, GRILLE, indice_temps, pas_de_temps, nb_grains, c, limite_gauche):
@@ -362,8 +311,8 @@ def actualisation_1(mise_a_jour, POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATI
     VITESSE[indice_temps] = VITESSE_DEMI_PAS[indice_temps-1] + ACCELERATION[indice_temps-1]*pas_de_temps
 
     # Grille
-    for grain in range(nb_grains):
-        if mise_a_jour[grain]:
+    for grain, maj in enumerate(mise_a_jour):
+        if maj:
             # On associe à chaque case de la grille les grains qui sont dans cette case
             # Probleme car pos_case peut etre negatif pour ca on déplace le repere:
             try:
@@ -379,7 +328,7 @@ def actualisation_1(mise_a_jour, POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATI
                 mise_a_jour[grain] = 0
 
 
-    return GRILLE, POSITION, VITESSE
+    return GRILLE, POSITION, VITESSE, mise_a_jour
 
 @njit
 def voisinage(mise_a_jour, grain, x, y, GRILLE):
@@ -409,7 +358,7 @@ def voisinage(mise_a_jour, grain, x, y, GRILLE):
     return voisinage
 
 @njit
-def maj_contact(GRILLE, mise_a_jour, CONTACT, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche):
+def maj_contact(GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou):
     """
     Met à jour la liste des contacts
 
@@ -420,31 +369,32 @@ def maj_contact(GRILLE, mise_a_jour, CONTACT, indice_temps, nb_grains, POSITION,
     ======
     """
 
-    nouveau_contact = np.zeros((nb_grains, nb_grains+2, 2), dtype=np.int64)
-    for i in range(nb_grains):
-        nouveau_contact_i = nouveau_contact[i]
-        if mise_a_jour[i]:
+    nouveau_contact = np.zeros((nb_grains, nb_grains+2, 1), dtype=np.int64)
+    nouveau_allongement = np.zeros((nb_grains, nb_grains+2, 2), dtype=np.float64)
+    for i, maj in enumerate(mise_a_jour):
+        if maj:
             pos_i = POSITION[indice_temps, i]
+            vitesse_i = VITESSE[indice_temps, i]
             rayon_i = RAYON[i]
-            ancien_contact_i = CONTACT[i]
 
             # Contact avec les parois ?
-            penetration_gauche = allongement_normal_grain_paroigauche(pos_i, rayon_i, Agauche, Cgauche)
-            penetration_droite = allongement_normal_grain_paroidroite(pos_i, rayon_i, Adroite, Cdroite)
-            if penetration_gauche < 0:
-                nouveau_contact_i[nb_grains][0] = 1
-                # On regarde s'il y avait déjà contact:
-                if ancien_contact_i[nb_grains][0]:
-                    nouveau_contact_i[nb_grains][1] = ancien_contact_i[nb_grains][1] # il y a deja contact, donc indice impact ne change pas
-                else:
-                    nouveau_contact_i[nb_grains][0] = indice_temps # sinon il change
-            elif penetration_droite < 0:
-                nouveau_contact_i[nb_grains+1][0] = 1
-                # On regarde s'il y avait déjà contact:
-                if ancien_contact_i[nb_grains+1][0]:
-                    nouveau_contact_i[nb_grains+1][1] = ancien_contact_i[nb_grains+1][1] # il y a deja contact, donc indice impact ne change pas
-                else:
-                    nouveau_contact_i[nb_grains+1][0] = indice_temps # sinon il change
+            if pos_i[1] >= debut_du_trou:
+                penetration_gauche = allongement_normal_grain_paroigauche(pos_i, rayon_i, Agauche, Cgauche)
+                penetration_droite = allongement_normal_grain_paroidroite(pos_i, rayon_i, Adroite, Cdroite)
+
+                if penetration_gauche < 0:
+                    nouveau_contact[i, nb_grains] = 1
+                    nouveau_allongement[i, nb_grains, 0] = penetration_gauche
+                    allongement_tangentiel = ALLONGEMENT[i, nb_grains, 1]
+                    allongement_tangentiel = allongement_tangentiel_grain_paroi_droite(vitesse_i, vecteur_tangent_paroi_droite, pas_de_temps, allongement_tangentiel)
+                    nouveau_allongement[i, nb_grains, 1] = allongement_tangentiel
+
+                elif penetration_droite < 0:
+                    nouveau_contact[i, nb_grains+1] = 1
+                    nouveau_allongement[i, nb_grains+1, 0] = penetration_droite
+                    allongement_tangentiel = ALLONGEMENT[i, nb_grains+1, 1]
+                    allongement_tangentiel = allongement_tangentiel_grain_paroi_gauche(vitesse_i, vecteur_tangent_paroi_gauche, pas_de_temps, allongement_tangentiel)
+                    nouveau_allongement[i, nb_grains+1, 1] = allongement_tangentiel
 
             # Contact avec un autre grain ?
             pos_case = (int((pos_i[0] + abs(limite_gauche))/c), int((pos_i[1] + abs(limite_gauche))/c))
@@ -452,25 +402,24 @@ def maj_contact(GRILLE, mise_a_jour, CONTACT, indice_temps, nb_grains, POSITION,
             for j in voisins:
                 if i != j: # pas besoin de check le mise a jour car 'voisins' ne peut pas contenir les grains pas à jour
                     pos_j = POSITION[indice_temps, j]
+                    vitesse_j = VITESSE[indice_temps, j]
                     rayon_j = RAYON[j]
+
                     allongement_normal = allongement_normal_grain_grain(pos_i, pos_j, rayon_i, rayon_j)
                     if allongement_normal < 0:
-                        nouveau_contact_i[j][0] = 1
-                        # On regarde s'il y avait déjà contact:
-                        if ancien_contact_i[j][0]:
-                            nouveau_contact_i[j][1] = ancien_contact_i[j][1] # il y a deja contact, donc indice impact ne change pas
-                        else:
-                            nouveau_contact_i[j][0] = indice_temps # sinon il change
+                        nouveau_contact[i, j] = 1
+                        nouveau_allongement[i, j, 0] = allongement_normal
+                        allongement_tangentiel = ALLONGEMENT[i, j, 1]
+                        allongement_tangentiel = allongement_tangentiel_grain_grain(pos_i, pos_j, vitesse_i, vitesse_j, pas_de_temps, allongement_tangentiel)
+                        nouveau_allongement[i, j, 1] = allongement_tangentiel
 
-        # On met a jour alors pour le grain i
-        nouveau_contact[i] = nouveau_contact_i 
 
-            
-    return nouveau_contact
+    print(nouveau_allongement)        
+    return nouveau_contact, nouveau_allongement
 
 
 @njit
-def resultante_et_actualisation_2(coefficient_frottement, CONTACT, POSITION, VITESSE, ACCELERATION, VITESSE_DEMI_PAS, MASSE, RAYON, AMORTISSEMENT, raideur_normale, raideur_tangentielle, coefficient_trainee, nb_grains, indice_temps, pas_de_temps, c, Agauche, Cgauche, Adroite, Cdroite, limite_gauche, debut_du_trou, mise_a_jour, hauteur_bac, vecteur_orthogonal_paroi_gauche, vecteur_orthogonal_paroi_droite):
+def resultante_et_actualisation_2(coefficient_frottement, CONTACT, POSITION, VITESSE, ACCELERATION, VITESSE_DEMI_PAS, MASSE, RAYON, AMORTISSEMENT, raideur_normale, raideur_tangentielle, coefficient_trainee, nb_grains, indice_temps, pas_de_temps, c, Agauche, Cgauche, Adroite, Cdroite, limite_gauche, debut_du_trou, mise_a_jour, hauteur_bac, vecteur_orthogonal_paroi_gauche, vecteur_orthogonal_paroi_droite, vecteur_tangent_paroi_gauche, vecteur_tangent_paroi_droite):
     """
     Fonction qui calcule la force résultante et actualise l'accélération à l'instant k et la vitesse des grains à l'instant k+1/2
 
@@ -481,98 +430,95 @@ def resultante_et_actualisation_2(coefficient_frottement, CONTACT, POSITION, VIT
     Retour
     ======
     """
-    vecteur_tangent_paroi_gauche = np.array([-vecteur_orthogonal_paroi_gauche[1], vecteur_orthogonal_paroi_gauche[0]])
-    vecteur_tangent_paroi_droite = np.array([-vecteur_orthogonal_paroi_droite[1], vecteur_orthogonal_paroi_droite[0]])
 
-    for grain1 in range(nb_grains):
+    for grain1, maj in enumerate(mise_a_jour):
 
-        if mise_a_jour[grain1]:
+        if maj:
             #Variables utiles:
             position_grain1 = POSITION[indice_temps, grain1]
             vitesse_grain1 = VITESSE[indice_temps, grain1]
-            rayon_grain1 = RAYON[grain1]
             masse_grain1 = MASSE[grain1]
-            liste_contact_grain1 = CONTACT[grain1] # de la forme (nbgrains+2, 2)
+            rayon_grain1 = RAYON[grain1]
+            tableau_contact_grain1 = CONTACT[grain1] # de la forme (nbgrains+2, 1)
 
 
             #Initialisation force résultante:
-            force_resultante = np.array([0.0, 0.0])
-            force_resultante += application_efforts_distance(masse_grain1) #Force à distance = gravité
+            force_resultante = application_efforts_distance(masse_grain1) #Force à distance = gravité
 
             #Initialisation force de contact:
             force_contact = np.array([0.0, 0.0])
-            for contact in range(len(liste_contact_grain1)):
-                en_contact_avec = liste_contact_grain1[contact][0]
+
+            for contact, en_contact in enumerate(tableau_contact_grain1):
 
                 # S'il y a contact:
-                if en_contact_avec:
-                    indice_impact = liste_contact_grain1[contact][1]
+                if en_contact:
 
                     # Rencontre avec une paroi du silo ?
                     # Paroi gauche
                     if contact == nb_grains:
-                        if position_grain1[1] >= debut_du_trou:
-                            penetration_gauche = allongement_normal_grain_paroigauche(position_grain1, rayon_grain1, Agauche, Cgauche)
-
-                            # Effort normal:
-                            force_normale = -raideur_normale * penetration_gauche * vecteur_orthogonal_paroi_gauche
-                            force_contact += force_normale
+                        penetration_gauche = ALLONGEMENT[grain1, nb_grains, 0]
+                        # Effort normal:
+                        force_normale = -raideur_normale * penetration_gauche * vecteur_orthogonal_paroi_gauche
+                        force_contact += force_normale
+                        print("----------------------")
+                        print("penetration gauche:", penetration_gauche)
+                        print("----------------------")
                             
-                            
-                            #Effort tangentiel:
-                            """
-                            allongement_tangentiel = allongement_tangentiel_grain_paroi_gauche(vecteur_tangent_paroi_gauche, indice_temps, VITESSE, grain, pas_de_temps, indice_impact)
-                            if np.dot(vecteur_tangent_paroi_gauche, VITESSE[indice_temps,grain1]) < 0:
-                                vecteur_tangent_paroi_gauche = -vecteur_tangent_paroi_gauche
-                            force_contact += -raideur_tangentielle * allongement_tangentiel * vecteur_tangent_paroi_gauche
-                            if np.linalg.norm(force_contact) > 10 or np.linalg.norm(vitesse_grain1)>2:
-                                print("----------------------")
-                                print("grain gauche:", grain1)
-                                print("liste contact grain gauche:", liste_contact_grain1)
-                                print("allongement tangentiel gauche:", allongement_tangentiel)
-                                print("vecteur tangentiel gauche:", vecteur_tangent_paroi_gauche)
-                                print("force contact gauche:", force_contact)
-                                print("raideur tangentielle gauche:", raideur_tangentielle)
-                                print("norme force contact tangentielle gauche:", np.linalg.norm(force_contact))
-                                print("vitesse grain gauche:", VITESSE[indice_temps,grain1])
-                                print("----------------------")
-                            
-
-                            # Glissement
-                            if abs(-raideur_tangentielle * allongement_tangentiel) <= coefficient_frottement * np.linalg.norm(force_normale):
-                                force_tangentielle = -raideur_tangentielle * allongement_tangentiel * vecteur_tangent_paroi_gauche
-                                force_contact += force_tangentielle
-                            else:
-                                force_tangentielle = np.sign(allongement_tangentiel * -raideur_tangentielle) * coefficient_frottement * np.linalg.norm(force_normale) * vecteur_tangent_paroi_gauche
-                                force_contact += force_tangentielle
-                            """
+                        """
+                        #Effort tangentiel:
+                        allongement_tangentiel = ALLONGEMENT[grain1, nb_grains][1]
+                        if np.dot(vecteur_tangent_paroi_gauche, VITESSE[indice_temps,grain1]) < 0:
+                            vecteur_tangent_paroi_gauche = -vecteur_tangent_paroi_gauche
+                        force_contact += -raideur_tangentielle * allongement_tangentiel * vecteur_tangent_paroi_gauche
+                        if np.linalg.norm(force_contact) > 100 or np.linalg.norm(vitesse_grain1)>2:
+                            print("----------------------")
+                            print("grain gauche:", grain1)
+                            print("liste contact grain gauche:", tableau_contact_grain1)
+                            print("allongement tangentiel gauche:", allongement_tangentiel)
+                            print("vecteur tangentiel gauche:", vecteur_tangent_paroi_gauche)
+                            print("force contact gauche:", force_contact)
+                            print("raideur tangentielle gauche:", raideur_tangentielle)
+                            print("norme force contact tangentielle gauche:", np.linalg.norm(force_contact))
+                            print("vitesse grain gauche:", VITESSE[indice_temps,grain1])
+                            print("----------------------")
+                        """
+                        """
+                        # Glissement
+                        if abs(-raideur_tangentielle * allongement_tangentiel) <= coefficient_frottement * np.linalg.norm(force_normale):
+                            force_tangentielle = -raideur_tangentielle * allongement_tangentiel * vecteur_tangent_paroi_gauche
+                            force_contact += force_tangentielle
+                        else:
+                            force_tangentielle = np.sign(allongement_tangentiel * -raideur_tangentielle) * coefficient_frottement * np.linalg.norm(force_normale) * vecteur_tangent_paroi_gauche
+                            force_contact += force_tangentielle
+                        """
 
 
                     # Paroi droite
                     elif contact == nb_grains+1:
-                        if position_grain1[1] >= debut_du_trou:
-                            penetration_droite = allongement_normal_grain_paroidroite(position_grain1, rayon_grain1, Adroite, Cdroite)
-
-                            # Effort normal:
-                            force_normale = -raideur_normale * penetration_droite * vecteur_orthogonal_paroi_droite
-                            force_contact += force_normale
-
-                            """
-                            #Effort tangentiel:
-                            allongement_tangentiel = allongement_tangentiel_grain_paroi_droite(vecteur_tangent_paroi_droite, indice_temps, VITESSE, grain, pas_de_temps, indice_impact)
-                            if np.dot(vecteur_tangent_paroi_droite, VITESSE[indice_temps,grain1]) < 0:
-                                vecteur_tangent_paroi_droite = -vecteur_tangent_paroi_droite
-                            force_contact += -raideur_tangentielle * allongement_tangentiel * vecteur_tangent_paroi_droite
-
-                            # Glissement
-                            if abs(-raideur_tangentielle * allongement_tangentiel) <= coefficient_frottement * np.linalg.norm(force_normale):
-                                force_tangentielle = -raideur_tangentielle * allongement_tangentiel * vecteur_tangent_paroi_droite
-                                force_contact += force_tangentielle
-                            else:
-                                force_tangentielle = np.sign(allongement_tangentiel * -raideur_tangentielle) * coefficient_frottement * np.linalg.norm(force_normale) * vecteur_tangent_paroi_droite
-                                force_contact += force_tangentielle
-                            
-                            """
+                        penetration_droite = ALLONGEMENT[grain1, nb_grains+1, 0]
+                        print("----------------------")
+                        print("penetration droite:", penetration_droite)
+                        print("----------------------")
+                        # Effort normal:
+                        force_normale = -raideur_normale * penetration_droite * vecteur_orthogonal_paroi_droite
+                        force_contact += force_normale
+                        """
+                        #Effort tangentiel:
+                        allongement_tangentiel = allongement_tangentiel_grain_paroi_droite(vecteur_tangent_paroi_droite, indice_temps, VITESSE, grain, pas_de_temps, indice_impact)
+                        if np.dot(vecteur_tangent_paroi_droite, VITESSE[indice_temps,grain1]) < 0:
+                            vecteur_tangent_paroi_droite = -vecteur_tangent_paroi_droite
+                        force_contact += -raideur_tangentielle * allongement_tangentiel * vecteur_tangent_paroi_droite
+                        """
+                        """
+                        # Glissement
+                        if abs(-raideur_tangentielle * allongement_tangentiel) <= coefficient_frottement * np.linalg.norm(force_normale):
+                            force_tangentielle = -raideur_tangentielle * allongement_tangentiel * vecteur_tangent_paroi_droite
+                            force_contact += force_tangentielle
+                        else:
+                            force_tangentielle = np.sign(allongement_tangentiel * -raideur_tangentielle) * coefficient_frottement * np.linalg.norm(force_normale) * vecteur_tangent_paroi_droite
+                            force_contact += force_tangentielle
+                        
+                        """
                     
 
                     # Rencontre avec un autre grain ?
@@ -580,25 +526,35 @@ def resultante_et_actualisation_2(coefficient_frottement, CONTACT, POSITION, VIT
                         # Variables utiles:
                         grain2 = contact
                         position_grain2 = POSITION[indice_temps, grain2]
-                        vitesse_grain2 = VITESSE[indice_temps, grain2]
-                        rayon_grain2 = RAYON[grain2]
-                        vecteur_normal_inter_grain = (position_grain1 - position_grain2)/(np.linalg.norm(position_grain1 - position_grain2))
 
                         # Effort normal:
-                        allongement = allongement_normal_grain_grain(position_i=position_grain1, position_j=position_grain2, rayon_i=rayon_grain1, rayon_j=rayon_grain2)
-                        force_normale = -raideur_normale * allongement * vecteur_normal_inter_grain
+                        vecteur_normal_inter_grain = (position_grain1 - position_grain2)/(np.linalg.norm(position_grain1 - position_grain2))
+                        allongement_normal = ALLONGEMENT[grain1, grain2, 0]
+                        force_normale = -raideur_normale * allongement_normal * vecteur_normal_inter_grain
                         force_contact += force_normale
+                        print("----------------------")
+                        print("Allongement normal:", allongement_normal)
+                        print("----------------------")
                         
                         
-                        """# Effort tangentiel:
-                        allongement_tangentiel = allongement_tangentiel_grain_grain(grain1, grain2, POSITION, VITESSE, pas_de_temps, indice_impact, indice_temps)
+                        
+                        # Effort tangentiel:
                         vecteur_tangentiel_inter_grain = np.array([-vecteur_normal_inter_grain[1], vecteur_normal_inter_grain[0]])
-                        #On inverse la vecteur tangentiel si il s'oppose à la vitesse relative:
-                        if np.dot(vecteur_tangentiel_inter_grain, VITESSE[indice_temps,grain1]) < 0:
-                            vecteur_tangentiel_inter_grain = -vecteur_tangentiel_inter_grain
+                        allongement_tangentiel = ALLONGEMENT[grain1, grain2, 1]
                         force_contact += -raideur_tangentielle * allongement_tangentiel * vecteur_tangentiel_inter_grain
-
-
+                        if np.linalg.norm(force_contact) > 1:
+                            print("----------------------")
+                            print("indice temps:", indice_temps)
+                            print("grain1:", grain1)
+                            print("grain2:", grain2)
+                            print("allongement tangentiel:", allongement_tangentiel)
+                            print("vecteur tangentiel:", vecteur_tangentiel_inter_grain)
+                            print("force contact:", force_contact)
+                            print("vitesses:", VITESSE[indice_temps,grain1], VITESSE[indice_temps,grain2])
+                            print("----------------------")
+                        
+                       
+                        """
                         # Amortissement:
                         derivee_allongement_normal = derivee_allongement_normal_grain_grain(vitesse_grain1, vitesse_grain2, vecteur_normal_inter_grain)
                         force_contact += - AMORTISSEMENT[grain1] * derivee_allongement_normal * vecteur_normal_inter_grain
@@ -609,46 +565,41 @@ def resultante_et_actualisation_2(coefficient_frottement, CONTACT, POSITION, VIT
                             force_contact += force_tangentielle
                         else:
                             force_tangentielle = np.sign(allongement_tangentiel * -raideur_tangentielle) * coefficient_frottement * np.linalg.norm(force_normale) * vecteur_tangentiel_inter_grain
-                            force_contact += force_tangentielle"""
-                    
+                            force_contact += force_tangentielle
+                        """
 
-                    # Mise à jour de la résultante des forces sur grain1
-                    force_resultante += force_contact
-
-
-
-
-                # Rencontre avec le bac du silo ?
-                distance_bac = POSITION[indice_temps, grain1, 1] - hauteur_bac
-                penetration_bac = distance_bac - RAYON[grain1]
-                if penetration_bac < 0: 
-                    #on stope les grains qui sont dans le bac:
-                    VITESSE[indice_temps, grain1] = np.array([0,0])
-                    ACCELERATION[indice_temps, grain1] = np.array([0,0])
-                    VITESSE_DEMI_PAS[indice_temps, grain1] = np.array([0,0])
-                    # et on arrete de les mettres a jour:
-                    # Trouver l'index de tous les éléments qui ne sont pas égaux à 'grain1'
-                    mise_a_jour[grain1] = 0
-                
-
-
-                # Le reste:
-                # Force de trainée:
-                norme_vitesse = np.linalg.norm(vitesse_grain1)
-                if norme_vitesse > 0:
-                    frotemment_air = (1/2)*rho*(4*pi*RAYON[grain1]**2)*coefficient_trainee*norme_vitesse**2
-                    vecteur_directeur_vitesse = vitesse_grain1/ norme_vitesse
-                    force_resultante += -frotemment_air*vecteur_directeur_vitesse
-
-                # Calcul de l'accélération du grain à partir de l'équation
-                ACCELERATION[indice_temps][grain1] = force_resultante / MASSE[grain1]
-
-                # Calcul de la vitesse de demi-pas à k+1/2 à partir de l'équation
-                VITESSE_DEMI_PAS[indice_temps][grain1] = VITESSE_DEMI_PAS[indice_temps-1][grain1] + ACCELERATION[indice_temps][grain1] * pas_de_temps / 2
+            # Mise à jour de la résultante des forces sur grain1
+            force_resultante += force_contact
 
 
 
-    return ACCELERATION, VITESSE_DEMI_PAS
+
+            # Rencontre avec le bac du silo ?
+            distance_bac = position_grain1[1] - hauteur_bac
+            penetration_bac = distance_bac - rayon_grain1
+            if penetration_bac < 0: 
+                #on stope les grains qui sont dans le bac:
+                VITESSE[indice_temps, grain1] = np.array([0,0])
+                ACCELERATION[indice_temps, grain1] = np.array([0,0])
+                VITESSE_DEMI_PAS[indice_temps, grain1] = np.array([0,0])
+                # et on arrete de les mettre a jour:
+                mise_a_jour[grain1] = 0
+            
+            # Le reste:
+            # Force de trainée:
+            norme_vitesse = np.linalg.norm(vitesse_grain1)
+            if norme_vitesse > 0:
+                frotemment_air = (1/2)*rho*(4*pi*rayon_grain1**2)*coefficient_trainee*norme_vitesse**2
+                vecteur_directeur_vitesse = vitesse_grain1/ norme_vitesse
+                force_resultante += -frotemment_air*vecteur_directeur_vitesse
+            # Calcul de l'accélération du grain à partir de l'équation
+            ACCELERATION[indice_temps, grain1] = force_resultante / masse_grain1
+            # Calcul de la vitesse de demi-pas à k+1/2 à partir de l'équation
+            VITESSE_DEMI_PAS[indice_temps, grain1] = VITESSE_DEMI_PAS[indice_temps-1, grain1] + ACCELERATION[indice_temps, grain1] * pas_de_temps / 2
+
+
+
+    return mise_a_jour, ACCELERATION, VITESSE_DEMI_PAS
 
 
 
@@ -685,7 +636,62 @@ Coefficient de traînée (Cd) pour un grain de blé : environ 0,47
 """
 # ON PLACE LE REPERE EN BAS A GAUCHE (0,0) DU SILO COIN BAS GAUCHE Y VERS LE HAUT X VERS LA DROITE.
 
+# Définition grain
+coef = 3
+nb_grains = 60
+rayon = 5e-3 #m
+rho = 770 #kg/m3
+RAYON = np.random.uniform(low=rayon*0.8, high=rayon*1.2, size=nb_grains)
+MASSE = rho * 4/3 * pi * RAYON**3
+raideur_normale = rho #N/m
+raideur_tangentielle = (1/2)*raideur_normale #N/m
+coefficient_trainee = 0.10
+AMORTISSEMENT = np.sqrt(raideur_normale*MASSE)*0.1
 
+# ESPACE
+limite_bas = -1  #m
+limite_haut = 2.5 #m
+limite_gauche = -1 #m
+limite_droite = 1 #m
+coefficient_frottement = 0.5
+# Definition bac de réception
+hauteur_bac = 0.4 #m
+largeur_bac_gauche = 0.5/2 #m
+largeur_bac_droite = 0.5/2 #m
+# Définition de la grille
+c = 2*rayon*1.2 #pas d'espace de la grille en m
+# On définit une grille pour discrétiser l'espace selon le pas d'espace c, a chaque case on met la liste des grains qui sont dans cette case
+nb_cases_x = int((limite_droite - limite_gauche)/c) + 2
+nb_cases_y = int((limite_haut - limite_bas)/c) + 2
+GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=int) #on définit une grille vide #ancienne version : GRILLE = {(i,j):[] for i in range(int(limite_gauche/c)-1, int(limite_droite/c)+2) for j in range(int(limite_bas/c)-1, int(limite_haut/c)+2)}
+
+
+# TEMPS
+temps = 0
+indice_temps = 0
+pas_de_temps = np.sqrt(np.mean(MASSE)/raideur_normale)*0.2#s
+duree_simulation = 2 #s
+nb_temps = int(duree_simulation/pas_de_temps)
+
+
+#TABLEAUX DE DONNEES:
+POSITION = np.zeros((nb_temps, nb_grains, 2))   
+VITESSE = np.zeros((nb_temps, nb_grains, 2))
+VITESSE_DEMI_PAS = np.zeros((nb_temps, nb_grains, 2))
+ACCELERATION = np.zeros((nb_temps, nb_grains, 2))
+CONTACT = np.zeros((nb_grains, nb_grains+2, 1), dtype=np.int64)
+ALLONGEMENT = np.zeros((nb_grains, nb_grains+2, 2), dtype=np.float64)
+
+mise_a_jour = np.array([1 for i in range(nb_grains)])  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
+
+# Affichage des infos implicites:
+print(f"nombre de grain: {nb_grains}")
+print(f"pas de temps: {pas_de_temps:.2E} s.")
+print(f"nombre de temps: {nb_temps}.")
+print(f"raideur normale: {raideur_normale:.2E} N/m.")
+print(f"masse moyenne des grains: {np.mean(MASSE):.2E} kg.")
+print(f"rayon moyen des grains: {np.mean(RAYON):.2E} m.")
+print(f"amoortissement moyen: {np.mean(AMORTISSEMENT):.2E} Ns/m.")
 
     #-------------------------------------------------------------------------------------------------------------------------------------------#
     #-----------------------------------------------------------SIMULATION----------------------------------------------------------------------#
@@ -695,63 +701,10 @@ Coefficient de traînée (Cd) pour un grain de blé : environ 0,47
 
 if __name__ == "__main__":
 
+
     app = App()
     app.racine.mainloop()
-
-    # Définition grain
-    nb_grains = app.nbGrains
-    rayon = 5e-3 #m
-    rho = 770 #kg/m3
-    RAYON = np.random.uniform(low=rayon*0.8, high=rayon*1.2, size=nb_grains)
-    MASSE = rho * 4/3 * pi * RAYON**3
-    raideur_normale = rho #N/m
-    raideur_tangentielle = (1/2)*raideur_normale #N/m
-    coefficient_trainee = 0.47
-    AMORTISSEMENT = np.sqrt(raideur_normale*MASSE)
-
-    # ESPACE
-    limite_bas = app.limite_bas  #m
-    limite_haut = app.limite_haut #m
-    limite_gauche = app.limite_gauche #m
-    limite_droite = app.limite_droite #m
-    coefficient_frottement = 0.5
-    # Definition bac de réception
-    hauteur_bac = app.hauteurBac #m
-    largeur_bac_gauche = app.largeurBac/2 #m
-    largeur_bac_droite = app.largeurBac/2 #m
-    # Définition de la grille
-    c = 2*rayon*1.2 #pas d'espace de la grille en m
-    # On définit une grille pour discrétiser l'espace selon le pas d'espace c, a chaque case on met la liste des grains qui sont dans cette case
-    nb_cases_x = int((limite_droite - limite_gauche)/c) + 2
-    nb_cases_y = int((limite_haut - limite_bas)/c) + 2
-    GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=int) #on définit une grille vide #ancienne version : GRILLE = {(i,j):[] for i in range(int(limite_gauche/c)-1, int(limite_droite/c)+2) for j in range(int(limite_bas/c)-1, int(limite_haut/c)+2)}
-
-
-    # TEMPS
-    temps = 0
-    indice_temps = 0
-    pas_de_temps = (1/raideur_normale)/5 #s
-    duree_simulation = 10 #s
-    nb_temps = int(duree_simulation/pas_de_temps)
-
-
-    #TABLEAUX DE DONNEES:
-    POSITION = np.zeros((nb_temps, nb_grains, 2))   
-    VITESSE = np.zeros((nb_temps, nb_grains, 2))
-    VITESSE_DEMI_PAS = np.zeros((nb_temps, nb_grains, 2))
-    ACCELERATION = np.zeros((nb_temps, nb_grains, 2))
-    CONTACT = np.zeros((nb_grains, nb_grains+2, 2), dtype=np.int64)
-
-    mise_a_jour = np.array([1 for i in range(nb_grains)])  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
-
-    # Affichage des infos implicites:
-    print(f"nombre de grain: {nb_grains}")
-    print(f"pas de temps: {pas_de_temps:.2E} s.")
-    print(f"nombre de temps: {nb_temps}.")
-    print(f"raideur normale: {raideur_normale:.2E} N/m.")
-    print(f"masse moyenne des grains: {np.mean(MASSE):.2E} kg.")
-    print(f"rayon moyen des grains: {np.mean(RAYON):.2E} m.")
-    print(f"amoortissement moyen: {np.mean(AMORTISSEMENT):.2E} Ns/m.")
+    plt.close('all')
 
     # On définit les droites des parois des silos comme des droites de la forme y = Ax + C afin de mettre sous la forme -Ax + y - C = 0
 
@@ -769,7 +722,8 @@ if __name__ == "__main__":
     paroiDroite = lambda x : Adroite*x+Cdroite
     vecteur_directeur_paroi_droite = np.array([1.0, Adroite])/ np.sqrt(1 + (Agauche)**2) #pointe vers le haut, normalisé
     vecteur_orthogonal_paroi_droite = np.array([-Adroite, 1.0])/ np.sqrt(1 + (Agauche)**2) #pointe vers l'intérieur du silo, normalisé
-
+    vecteur_tangent_paroi_gauche = np.array([-vecteur_orthogonal_paroi_gauche[1], vecteur_orthogonal_paroi_gauche[0]])
+    vecteur_tangent_paroi_droite = np.array([-vecteur_orthogonal_paroi_droite[1], vecteur_orthogonal_paroi_droite[0]])
     #Positionnement initiale des grains
     hauteur = app.hauteur #m
     gauche = (hauteur - Cgauche)/Agauche + rayon*1.3
@@ -822,13 +776,13 @@ if __name__ == "__main__":
         temps += pas_de_temps
         
         # Actualisation de la grille, de la position et de la vitesse
-        GRILLE, POSITION, VITESSE = actualisation_1(mise_a_jour,POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATION, GRILLE, indice_temps, pas_de_temps, nb_grains, c, limite_gauche)   
+        GRILLE, POSITION, VITESSE, mise_a_jour = actualisation_1(mise_a_jour,POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATION, GRILLE, indice_temps, pas_de_temps, nb_grains, c, limite_gauche)   
 
         #On met à jour la liste des contacts:
-        CONTACT = maj_contact(GRILLE, mise_a_jour, CONTACT, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche)
+        CONTACT, ALLONGEMENT = maj_contact(GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou)
 
         # Calcul des efforts de contact pour mise à jour des vitesses à temps k+1/2 et accélérations à temps k
-        ACCELERATION, VITESSE_DEMI_PAS = resultante_et_actualisation_2(coefficient_frottement, CONTACT, POSITION, VITESSE, ACCELERATION, VITESSE_DEMI_PAS, MASSE, RAYON, AMORTISSEMENT, raideur_normale, raideur_tangentielle, coefficient_trainee, nb_grains, indice_temps, pas_de_temps, c, Agauche, Cgauche, Adroite, Cdroite, limite_gauche, debut_du_trou, mise_a_jour, hauteur_bac, vecteur_orthogonal_paroi_gauche, vecteur_orthogonal_paroi_droite)
+        mise_a_jour, ACCELERATION, VITESSE_DEMI_PAS = resultante_et_actualisation_2(coefficient_frottement, CONTACT, POSITION, VITESSE, ACCELERATION, VITESSE_DEMI_PAS, MASSE, RAYON, AMORTISSEMENT, raideur_normale, raideur_tangentielle, coefficient_trainee, nb_grains, indice_temps, pas_de_temps, c, Agauche, Cgauche, Adroite, Cdroite, limite_gauche, debut_du_trou, mise_a_jour, hauteur_bac, vecteur_orthogonal_paroi_gauche, vecteur_orthogonal_paroi_droite, vecteur_tangent_paroi_gauche, vecteur_tangent_paroi_droite)
         
         # Pour éviter les doublons dans la prochaine case de la grille on la réinitialise:
         GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=int)
