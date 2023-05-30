@@ -18,8 +18,8 @@ class App():
         self.getParametres()
         self.limite_bas = -1  #m
         self.limite_haut = 2 #m
-        self.limite_gauche = -2 #m
-        self.limite_droite = 2 #m
+        self.limite_gauche = -1.5 #m
+        self.limite_droite = 1.5 #m
         self.largeur_silo_gauche = -1 #m
         self.largeur_silo_droite = 1 #m
         # On définit les droites des parois des silos comme des droites de la forme y = Ax + C afin de mettre sous la forme -Ax + y - C = 0
@@ -30,7 +30,7 @@ class App():
         self.vecteur_directeur_paroi_droite = np.array([1.0, -self.CoeffDir])/ np.sqrt(1 + (self.CoeffDir)**2) #pointe vers le haut, normalisé
         self.vecteur_orthogonal_paroi_droite = np.array([-self.CoeffDir, 1.0]) #pointe vers l'intérieur du silo, normalisé
 
-        self.rayon = 6e-3 #m
+        self.rayon = 5e-3 #m
     
         self.run = True
 
@@ -67,11 +67,12 @@ class App():
             POSITION = np.zeros((1, self.nbGrains, 2))   
             grain = 0 # compteur grain
             q = 0 # compteur colonne
+            self.hauteurGrain = self.hauteur
 
             while grain < self.nbGrains:
                 while True:
                     x = self.gauche + (self.rayon*1.3*2)*q
-                    y = self.hauteur
+                    y = self.hauteurGrain
                     if x > self.droite or grain >= self.nbGrains:
                         break
                     else:
@@ -81,11 +82,11 @@ class App():
                         q += 1
                 if grain < self.nbGrains:
                     q = 0
-                    self.hauteur -= self.rayon*1.3*2
-                    self.gauche = (self.hauteur - self.OrdOrigine)/self.CoeffDir + self.rayon*1.3
-                    self.droite = (self.hauteur - self.OrdOrigine)/-self.CoeffDir - self.rayon*1.3
+                    self.hauteurGrain -= self.rayon*1.3*2
+                    self.gauche = (self.hauteurGrain - self.OrdOrigine)/self.CoeffDir + self.rayon*1.3
+                    self.droite = (self.hauteurGrain - self.OrdOrigine)/-self.CoeffDir - self.rayon*1.3
                     x = self.gauche + (self.rayon*1.3*2)*q
-                    y = self.hauteur
+                    y = self.hauteurGrain
                     POSITION[0, grain, 0] = x
                     POSITION[0, grain, 1] = y
                     grain += 1
@@ -166,6 +167,7 @@ class App():
                                                                                                   hauteur = self.hauteur))
         fichier.close()                                 # On ferme le fichier
         self.kill()
+        plt.close('all')
     
     def kill(self, *event):
 
