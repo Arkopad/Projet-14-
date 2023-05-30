@@ -627,53 +627,6 @@ Coefficient de traînée (Cd) pour un grain de blé : environ 0,47
 """
 # ON PLACE LE REPERE EN BAS A GAUCHE (0,0) DU SILO COIN BAS GAUCHE Y VERS LE HAUT X VERS LA DROITE.
 
-# Définition grain
-coef = 3
-nb_grains = 60
-rayon = 5e-3 #m
-rho = 770 #kg/m3
-RAYON = np.random.uniform(low=rayon*0.8, high=rayon*1.2, size=nb_grains)
-MASSE = rho * 4/3 * pi * RAYON**3
-raideur_normale = rho #N/m
-raideur_tangentielle = (1/2)*raideur_normale #N/m
-coefficient_trainee = 0.10
-AMORTISSEMENT = np.sqrt(raideur_normale*MASSE)*0.1
-
-# ESPACE
-limite_bas = -1  #m
-limite_haut = 2.5 #m
-limite_gauche = -1 #m
-limite_droite = 1 #m
-coefficient_frottement = 0.5
-# Definition bac de réception
-hauteur_bac = 0.4 #m
-largeur_bac_gauche = 0.5/2 #m
-largeur_bac_droite = 0.5/2 #m
-# Définition de la grille
-c = 2*rayon*1.2 #pas d'espace de la grille en m
-# On définit une grille pour discrétiser l'espace selon le pas d'espace c, a chaque case on met la liste des grains qui sont dans cette case
-nb_cases_x = int((limite_droite - limite_gauche)/c) + 2
-nb_cases_y = int((limite_haut - limite_bas)/c) + 2
-GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=int) #on définit une grille vide #ancienne version : GRILLE = {(i,j):[] for i in range(int(limite_gauche/c)-1, int(limite_droite/c)+2) for j in range(int(limite_bas/c)-1, int(limite_haut/c)+2)}
-
-
-# TEMPS
-temps = 0
-indice_temps = 0
-pas_de_temps = np.sqrt(np.mean(MASSE)/raideur_normale)*0.1#s
-duree_simulation = 2 #s
-nb_temps = int(duree_simulation/pas_de_temps)
-
-
-#TABLEAUX DE DONNEES:
-POSITION = np.zeros((nb_temps, nb_grains, 2))   
-VITESSE = np.zeros((nb_temps, nb_grains, 2))
-VITESSE_DEMI_PAS = np.zeros((nb_temps, nb_grains, 2))
-ACCELERATION = np.zeros((nb_temps, nb_grains, 2))
-CONTACT = np.zeros((nb_grains, nb_grains+2, 1), dtype=np.int64)
-ALLONGEMENT = np.zeros((nb_grains, nb_grains+2, 2), dtype=np.float64)
-
-mise_a_jour = np.array([1 for i in range(nb_grains)])  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
 
 
 
@@ -721,9 +674,10 @@ if __name__ == "__main__":
     # TEMPS
     temps = 0
     indice_temps = 0
-    pas_de_temps = (1/raideur_normale)/5 #s
-    duree_simulation = 10 #s
+    pas_de_temps = np.sqrt(np.mean(MASSE)/raideur_normale)*0.1#s
+    duree_simulation = 2 #s
     nb_temps = int(duree_simulation/pas_de_temps)
+
 
 
     #TABLEAUX DE DONNEES:
@@ -732,6 +686,7 @@ if __name__ == "__main__":
     VITESSE_DEMI_PAS = np.zeros((nb_temps, nb_grains, 2))
     ACCELERATION = np.zeros((nb_temps, nb_grains, 2))
     CONTACT = np.zeros((nb_grains, nb_grains+2, 2), dtype=np.int64)
+    ALLONGEMENT = np.zeros((nb_grains, nb_grains+2, 2), dtype=np.float64)
 
     mise_a_jour = np.array([1 for i in range(nb_grains)])  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
 
