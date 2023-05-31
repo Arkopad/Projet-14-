@@ -8,7 +8,6 @@ class App():
     def __init__(self):
         
         self.racine = tk.Tk()
-        self.racine.state("zoomed")
         self.racine.title("Paramètre")
         self.racine.configure(bg = "#222831")
         moniteurWidth = self.racine.winfo_screenwidth() # Largeur de l'écran

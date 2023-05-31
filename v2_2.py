@@ -398,13 +398,13 @@ def maj_contact(GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, A
             
             # Contact avec le bac ?
             else:
-                distance_bac = pos_i - hauteur_bac
+                distance_bac = pos_i[1] - hauteur_bac
                 penetration_bac = distance_bac - rayon_i
                 if penetration_bac < 0:
                     nouveau_contact[i, nb_grains+2] = 1
                     nouveau_allongement[i, nb_grains+2, 0] = penetration_bac
                     allongement_tangentiel = ALLONGEMENT[i, nb_grains+2, 1]
-                    allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, np.array([-1,0]), pas_de_temps, allongement_tangentiel)
+                    allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, np.array([-1.0,0.0]), pas_de_temps, allongement_tangentiel)
                     nouveau_allongement[i, nb_grains+2, 1] = allongement_tangentiel
 
 
@@ -430,7 +430,7 @@ def maj_contact(GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, A
 
 
 @njit
-def resultante_et_actualisation_2(mise_a_jour, indice_temps, AMORTISSEMENT, POSITION, VITESSE, MASSE, RAYON, CONTACT, ALLONGEMENT, ACCELERATION, VITESSE_DEMI_PAS, nb_grains, raideur_normale, raideur_tangentielle, coefficient_trainee, vecteur_orthogonal_paroi_gauche, vecteur_orthogonal_paroi_droite, vecteur_tangent_paroi_gauche, vecteur_tangent_paroi_droite, hauteur_bac):
+def resultante_et_actualisation_2(mise_a_jour, indice_temps, AMORTISSEMENT, POSITION, VITESSE, MASSE, RAYON, CONTACT, ALLONGEMENT, ACCELERATION, VITESSE_DEMI_PAS, nb_grains, raideur_normale, raideur_tangentielle, coefficient_trainee, vecteur_orthogonal_paroi_gauche, vecteur_orthogonal_paroi_droite, vecteur_tangent_paroi_gauche, vecteur_tangent_paroi_droite):
     """
     Fonction qui calcule la force résultante et actualise l'accélération à l'instant k et la vitesse des grains à l'instant k+1/2
 
@@ -567,25 +567,23 @@ def resultante_et_actualisation_2(mise_a_jour, indice_temps, AMORTISSEMENT, POSI
                         else:
                             force_tangentielle = np.sign(-coef_tangent) * coefficient_frottement * norme_normale * vecteur_tangentiel_inter_grain
                             force_contact += force_tangentielle 
+                    
+                    # Air:
+                    # Force de trainée:
+                    norme_vitesse = np.linalg.norm(vitesse_grain1)
+                    if norme_vitesse > 0:
+                        frotemment_air = (1/2)*rho*(4*pi*rayon_grain1**2)*coefficient_trainee*norme_vitesse**2
+                        vecteur_directeur_vitesse = vitesse_grain1/ norme_vitesse
+                        force_resultante += -frotemment_air*vecteur_directeur_vitesse
                         
 
             # Mise à jour de la résultante des forces sur grain1
             force_resultante += force_contact
-            
-        
-            # Le reste:
-            # Force de trainée:
-            norme_vitesse = np.linalg.norm(vitesse_grain1)
-            if norme_vitesse > 0:
-                frotemment_air = (1/2)*rho*(4*pi*rayon_grain1**2)*coefficient_trainee*norme_vitesse**2
-                vecteur_directeur_vitesse = vitesse_grain1/ norme_vitesse
-                force_resultante += -frotemment_air*vecteur_directeur_vitesse
+
             # Calcul de l'accélération du grain à partir de l'équation
             ACCELERATION[indice_temps, grain1] = force_resultante / masse_grain1
             # Calcul de la vitesse de demi-pas à k+1/2 à partir de l'équation
             VITESSE_DEMI_PAS[indice_temps, grain1] = VITESSE_DEMI_PAS[indice_temps-1, grain1] + ACCELERATION[indice_temps, grain1] * pas_de_temps / 2
-
-
 
     return mise_a_jour, ACCELERATION, VITESSE_DEMI_PAS
 
@@ -748,10 +746,10 @@ if __name__ == "__main__":
         GRILLE, POSITION, VITESSE, mise_a_jour = actualisation_1(mise_a_jour,POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATION, GRILLE, indice_temps, pas_de_temps, nb_grains, c, limite_gauche)   
 
         #On met à jour la liste des contacts:
-        CONTACT, ALLONGEMENT = maj_contact(GRILLE, mise_a_jour, indice_temps, nb_grains, AMORTISSEMENT, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac)
+        CONTACT, ALLONGEMENT = maj_contact(GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac)
 
         # Calcul des efforts de contact pour mise à jour des vitesses à temps k+1/2 et accélérations à temps k
-        mise_a_jour, ACCELERATION, VITESSE_DEMI_PAS = resultante_et_actualisation_2(mise_a_jour, indice_temps, POSITION, VITESSE, MASSE, RAYON, CONTACT, ALLONGEMENT, ACCELERATION, VITESSE_DEMI_PAS, nb_grains, raideur_normale, raideur_tangentielle, coefficient_trainee, vecteur_orthogonal_paroi_gauche, vecteur_orthogonal_paroi_droite, vecteur_tangent_paroi_gauche, vecteur_tangent_paroi_droite, hauteur_bac)
+        mise_a_jour, ACCELERATION, VITESSE_DEMI_PAS = resultante_et_actualisation_2(mise_a_jour, indice_temps, AMORTISSEMENT, POSITION, VITESSE, MASSE, RAYON, CONTACT, ALLONGEMENT, ACCELERATION, VITESSE_DEMI_PAS, nb_grains, raideur_normale, raideur_tangentielle, coefficient_trainee, vecteur_orthogonal_paroi_gauche, vecteur_orthogonal_paroi_droite, vecteur_tangent_paroi_gauche, vecteur_tangent_paroi_droite)
         
         # Pour éviter les doublons dans la prochaine case de la grille on la réinitialise:
         GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=int)
