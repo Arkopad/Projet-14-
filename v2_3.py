@@ -21,7 +21,7 @@ TO DO LIST:
 
  
 
-def trajectoire(POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite):
+def trajectoire(DEBIT, POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite):
     """
     Affiche la trajectoire des grains dans un graphe matplotlib.
 
@@ -33,36 +33,54 @@ def trajectoire(POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGa
     """
     print("Affichage de la trajectoire...")
 
-    fig, ax = plt.subplots()
-    ax.set_aspect('equal')
-
+    fig1, ax1 = plt.subplots()
     # dessin du silo dans le tableau graphique matplot
     # on trouve le x du debut du trou pour les deux parois:
     x_debut_du_trou_gauche = (debut_du_trou - Cgauche)/Agauche
     x_debut_du_trou_droite = (debut_du_trou - Cdroite)/Adroite
+
+    # Parois et bac:
     X1 = np.linspace(limite_gauche, x_debut_du_trou_gauche, 100)
     X2 = np.linspace(x_debut_du_trou_droite, limite_droite, 100)
-    plt.plot(X1, paroiGauche(X1), color='#EEEEEE')
-    plt.plot(X2, paroiDroite(X2), color='#EEEEEE')
-
-    # dessin du bac de reception
     X3 = np.linspace(-largeur_bac_gauche, largeur_bac_gauche, 100)
     Y3 = np.zeros(100) + hauteur_bac
-    plt.plot(X3, Y3, color='#EEEEEE')
+    ax1.plot(X1, paroiGauche(X1), color='#EEEEEE')
+    ax1.plot(X2, paroiDroite(X2), color='#EEEEEE')
+    ax1.plot(X3, Y3, color='#EEEEEE')
     
-    for grain in range(nb_grains):
-        ax.plot(POSITION[:, grain, 0], POSITION[:, grain, 1], label="grain {}".format(grain))
 
-    fig.patch.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
-    ax.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
-    ax.tick_params(axis='x', colors='white')
-    ax.tick_params(axis='y', colors='white')
-    ax.xaxis.label.set_color('white')
-    ax.yaxis.label.set_color('white')
-    ax.xaxis.label.set_color('#EEEEEE')
-    ax.grid(alpha=0.1)
+    for grain in range(nb_grains):
+        ax1.plot(POSITION[:, grain, 0], POSITION[:, grain, 1])
+
+    fig1.patch.set_facecolor('#222831') # On définit la couleur de fond de la figure
     plt.xlim([limite_gauche, limite_droite])
     plt.ylim([limite_bas, limite_haut])
+
+    ax1.set_aspect('equal')
+    ax1.set_facecolor('#222831') # On définit la couleur de fond de la figure
+    ax1.tick_params(axis='x', colors='white')
+    ax1.tick_params(axis='y', colors='white')
+    ax1.xaxis.label.set_color('white')
+    ax1.yaxis.label.set_color('white')
+    ax1.xaxis.label.set_color('#EEEEEE')
+    ax1.grid(alpha=0.1)
+
+    plt.legend()
+    plt.show()
+
+    fig2, ax2 = plt.subplots()
+    fig2.patch.set_facecolor('#222831')
+    TIME = np.linspace(0, nb_temps*pas_de_temps, DEBIT.shape[0])
+
+    ax2.plot(TIME, DEBIT)
+    ax2.set_facecolor('#222831') # On définit la couleur de fond de la figure
+    ax2.tick_params(axis='x', colors='white')
+    ax2.tick_params(axis='y', colors='white')
+    ax2.xaxis.label.set_color('white')
+    ax2.yaxis.label.set_color('white')
+    ax2.xaxis.label.set_color('#EEEEEE')
+    ax2.grid(alpha=0.1)
+
     plt.legend()
     plt.show()
 
@@ -357,7 +375,7 @@ def voisinage(mise_a_jour, grain, x, y, GRILLE):
     return voisinage
 
 @njit
-def maj_contact(CONTACT, coefficient_frottement, raideur_normale, raideur_tangentielle, GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac):
+def maj_contact(grains_passes, CONTACT, coefficient_frottement, raideur_normale, raideur_tangentielle, GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac):
     """
     Met à jour la liste des contacts
 
@@ -406,6 +424,7 @@ def maj_contact(CONTACT, coefficient_frottement, raideur_normale, raideur_tangen
             
             # Contact avec le bac ?
             else:
+                grains_passes += 1
                 distance_bac = pos_i[1] - hauteur_bac
                 penetration_bac = distance_bac - rayon_i
                 if penetration_bac < 0:
@@ -442,7 +461,7 @@ def maj_contact(CONTACT, coefficient_frottement, raideur_normale, raideur_tangen
                             nouveau_allongement[i, j, 1] = allongement_tangentiel
 
     
-    return nouveau_contact, nouveau_allongement
+    return grains_passes, nouveau_contact, nouveau_allongement
 
 
 @njit
@@ -686,6 +705,11 @@ if __name__ == "__main__":
     ACCELERATION = np.zeros((nb_temps, nb_grains, 2))
     CONTACT = np.zeros((nb_grains, nb_grains+3, 2), dtype=np.int64)
     ALLONGEMENT = np.zeros((nb_grains, nb_grains+3, 2), dtype=np.float64)
+    pas_debit = 10
+    intervalle_debit = pas_de_temps*pas_debit
+    taille_debit = int(duree_simulation/(intervalle_debit))
+    DEBIT = np.zeros(taille_debit)
+    grains_passes = 0 # nb des grains déjà passés par le trou --> grains calcul débit
     mise_a_jour = np.array([1 for i in range(nb_grains)])  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
 #-----------------------------------------------------------------------------------------------------------------------------------------------
     # Definition bac de réception
@@ -768,16 +792,22 @@ if __name__ == "__main__":
     # Boucle principale
     print("Simulation en cours...")
     start_time = time.time()
+    nb_ancien_grain_passes = grains_passes
     for indice_temps in tqdm(range(1, nb_temps)):
         # Actualisation du temps
         temps += pas_de_temps
+
+        # Actualisation de la variable comptant le nombre de grains pour le débit:
+        if temps%intervalle_debit == 0:
+            DEBIT[indice_temps*pas_debit] = (grains_passes-nb_ancien_grain_passes)/(intervalle_debit) 
+            nb_ancien_grain_passes = grains_passes
+        
         
         # Actualisation de la grille, de la position et de la vitesse
         GRILLE, POSITION, VITESSE, mise_a_jour = actualisation_1(mise_a_jour,POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATION, GRILLE, indice_temps, pas_de_temps, nb_grains, c, limite_gauche)   
 
         #On met à jour la liste des contacts:
-        CONTACT, ALLONGEMENT = maj_contact(CONTACT, coefficient_frottement, raideur_normale, raideur_tangentielle, GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac)
-
+        grains_passes, CONTACT, ALLONGEMENT = maj_contact(grains_passes, CONTACT, coefficient_frottement, raideur_normale, raideur_tangentielle, GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac)
         # Calcul des efforts de contact pour mise à jour des vitesses à temps k+1/2 et accélérations à temps k
         mise_a_jour, ACCELERATION, VITESSE_DEMI_PAS, CONTACT, VITESSE, VITESSE_DEMI_PAS = resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jour, indice_temps, AMORTISSEMENT, POSITION, VITESSE, MASSE, RAYON, CONTACT, ALLONGEMENT, ACCELERATION, VITESSE_DEMI_PAS, nb_grains, raideur_normale, raideur_tangentielle, coefficient_trainee, vecteur_orthogonal_paroi_gauche, vecteur_orthogonal_paroi_droite, vecteur_tangent_paroi_gauche, vecteur_tangent_paroi_droite)
         
@@ -789,5 +819,7 @@ if __name__ == "__main__":
     print("Temps de calcul: ", time.time() - start_time, "secondes")
 
     #Affichage:
-    trajectoire(POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite)
+    for i in range(len(DEBIT)):
+        print(DEBIT[i])
+    trajectoire(DEBIT, POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite)
     grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite, nb_temps, pas_de_temps)
