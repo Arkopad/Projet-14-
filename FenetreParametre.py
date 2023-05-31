@@ -2,6 +2,7 @@ import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import numpy as np
+from sys import platform
 
 class App():
 
@@ -9,6 +10,12 @@ class App():
         
         self.racine = tk.Tk()
         self.racine.title("Paramètre")
+         
+        if platform == "win32":
+            self.racine.state('zoomed')
+        else:
+            self.racine.attributes('-zoomed', True)
+
         self.racine.configure(bg = "#222831")
         moniteurWidth = self.racine.winfo_screenwidth() # Largeur de l'écran
         moniteurHeight = self.racine.winfo_screenheight() # Hauteur de l'écran
@@ -28,7 +35,6 @@ class App():
         self.paroiDroite = lambda x : -self.CoeffDir*x + self.OrdOrigine
         self.vecteur_directeur_paroi_droite = np.array([1.0, -self.CoeffDir])/ np.sqrt(1 + (self.CoeffDir)**2) #pointe vers le haut, normalisé
         self.vecteur_orthogonal_paroi_droite = np.array([-self.CoeffDir, 1.0]) #pointe vers l'intérieur du silo, normalisé
-
         self.rayon = 5e-3 #m
     
         self.run = True
@@ -54,9 +60,10 @@ class App():
         X2 = np.linspace(x_debutTrou_droite, self.largeur_silo_droite, 100)
         plt.plot(X1, self.paroiGauche(X1), color='#EEEEEE')
         plt.plot(X2, self.paroiDroite(X2), color='#EEEEEE')
-        X3 = np.linspace(-self.largeurBac/2, self.largeurBac/2, 100)
+        X3 = np.linspace(-self.limite_gauche/2, self.limite_gauche/2, 100)
         Y3 = np.zeros(100) + self.hauteurBac
         plt.plot(X3, Y3, color='#EEEEEE')
+        plt.axhline(y=self.hauteur, xmin=self.limite_gauche, xmax=self.limite_droite, color='red', linestyle='--', alpha=0.2)
 
         if self.displayGrain.get():
 
@@ -127,7 +134,7 @@ class App():
 
         if parametres == ['']:                                      # Si le fichier est vide
             
-            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4", "50", "1.5"]   # On initialise les paramètres
+            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4", "50", "1.5","10"]   # On initialise les paramètres
 
         try:                                                        # On essaye de convertir les paramètres en entier
 
@@ -138,11 +145,12 @@ class App():
             self.hauteurBac = float(parametres[4])                       #
             self.nbGrains = float(parametres[5])
             self.hauteur = float(parametres[6])
+            self.dureeSimulation = float(parametres[7])
         
         except Exception as erreur:                                 # Si les paramètres ne sont pas des entiers
             
             print("Erreur : le fichier parametres.csv est corrompu, les paramètres ont été réinitialisés\nDétail de l'erreur : ", erreur)   # On affiche un message d'erreur
-            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4", "50", "1.5"]            # On initialise les paramètres
+            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4", "50", "1.5","10"]            # On initialise les paramètres
             fichier = open("parametres.csv", "w+")                  # On ouvre le fichier en écriture
             fichier.write(";".join(parametres))                     # On écrit les paramètres dans le fichier
             fichier.close()                                         # On ferme le fichier
@@ -157,13 +165,14 @@ class App():
         """
  
         fichier = open("parametres.csv", "w+")          # On ouvre le fichier parametres.csv en écriture et on le crée s'il n'existe pas et on écrit les paramètres dedans
-        fichier.write("{CoeffDir};{OrdOrigine};{debutTrou};{largeurBac};{hauteurBac};{nbGrains};{hauteur}".format(CoeffDir = self.CoeffDir, 
+        fichier.write("{CoeffDir};{OrdOrigine};{debutTrou};{largeurBac};{hauteurBac};{nbGrains};{hauteur};{dureeSimulation}".format(CoeffDir = self.CoeffDir, 
                                                                                                   OrdOrigine = self.OrdOrigine, 
                                                                                                   debutTrou = self.debutTrou, 
                                                                                                   largeurBac = self.largeurBac, 
                                                                                                   hauteurBac = self.hauteurBac,
                                                                                                   nbGrains = self.nbGrains,
-                                                                                                  hauteur = self.hauteur))
+                                                                                                  hauteur = self.hauteur,
+                                                                                                  dureeSimulation = self.dureeSimulation))
         fichier.close()                                 # On ferme le fichier
         self.kill()
         plt.close('all')
@@ -180,6 +189,15 @@ class App():
         options_label = tk.Label(self.racine, text="Paramètre de la modélisation", font="Lucida 16 bold", bg = '#393E46', fg= '#EEEEEE', pady=10)
         options_label.pack(side=tk.TOP, fill='x')
 
+        frameParam = tk.Frame(self.racine, bd=0, bg = '#222831')
+        frameParam.pack(side=tk.TOP, fill='x', expand=True)
+
+        frameGauche = tk.Frame(frameParam, bd=0, bg = '#222831')
+        frameGauche.pack(side=tk.LEFT, fill='x', expand=True)
+
+        frameDroite = tk.Frame(frameParam, bd=0, bg = '#222831')
+        frameDroite.pack(side=tk.RIGHT, fill='x', expand=True)
+
         def setCoeffDir(*event):   
 
             self.displayGrain.set(0)
@@ -194,7 +212,7 @@ class App():
             self.canvas.draw()
             self.plot(self.canvas, self.ax)
 
-        CoeffDirFrame = tk.Frame(self.racine, bd=0, bg = '#222831')
+        CoeffDirFrame = tk.Frame(frameGauche, bd=0, bg = '#222831')
         CoeffDirFrame.pack(side=tk.TOP, pady=(10,0))
 
         CoeffDirLabel = tk.Label(CoeffDirFrame, text="Coeff. dir. (x10000):", font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE')
@@ -206,8 +224,7 @@ class App():
         CoeffDirValidateButton = tk.Button(CoeffDirFrame, bd=0, cursor="hand2", text = "Valider", font="Lucida 11 bold", bg = '#393E46', fg= '#EEEEEE', command=setCoeffDir)
         CoeffDirValidateButton.grid(row=0, column=2)
 
-        # create scrolled text for the number of the joueurs
-        CoeffDirScale = tk.Scale(self.racine, from_=-100000, to=-1, orient='horizontal', font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE', relief='flat', highlightthickness=0, troughcolor='#393E46', command= setCoeffDir)
+        CoeffDirScale = tk.Scale(frameGauche, from_=-100000, to=-1, orient='horizontal', font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE', relief='flat', highlightthickness=0, troughcolor='#393E46', command= setCoeffDir)
         CoeffDirScale.set(self.CoeffDir*10000)
         CoeffDirScale.pack(side=tk.TOP, padx=20, fill='x')
 
@@ -225,18 +242,9 @@ class App():
 
             self.canvas.draw()
             self.plot(self.canvas, self.ax)
-
-        frameParam = tk.Frame(self.racine, bd=0, bg = '#222831')
-        frameParam.pack(side=tk.TOP, fill='x', expand=True)
-
-        frameGauche = tk.Frame(frameParam, bd=0, bg = '#222831')
-        frameGauche.pack(side=tk.LEFT, fill='x', expand=True)
-
-        frameDroite = tk.Frame(frameParam, bd=0, bg = '#222831')
-        frameDroite.pack(side=tk.RIGHT, fill='x', expand=True)
-
+        
         OrdOrigineFrame = tk.Frame(frameGauche, bd=0, bg = '#222831')
-        OrdOrigineFrame.pack(side=tk.TOP)
+        OrdOrigineFrame.pack(side=tk.TOP, pady=(10,0))
 
         OrdOrigineLabel = tk.Label(OrdOrigineFrame, text="Ord. origine (x10000):", font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE')
         OrdOrigineLabel.grid(row=0, column=0)
@@ -283,37 +291,35 @@ class App():
         debutTrouScale.set(self.debutTrou*10000)
         debutTrouScale.pack(side=tk.TOP, padx=20, fill='x')
 
-        def setLargeurBac(*event):   
-            
-            self.displayGrain.set(0)
+        def setDureeSimulation(*event):
+    
             try:
-                if largeurBacEntry.get() != '':
-                    largeurBacScale.set(float(largeurBacEntry.get())*10000)
-                self.largeurBac = largeurBacScale.get()/10000
+                if dureeSimulationEntry.get() != '':
+                    dureeSimulationScale.set(float(dureeSimulationEntry.get()))
+                self.dureeSimulation = dureeSimulationScale.get()
             except Exception as e:
-                print(f"Valeur de Ord Origine dir non valide : {e}")
-            largeurBacEntry.delete(0,tk.END)
-            largeurBacEntry.insert(0,'')
-            self.canvas.draw()
-            self.plot(self.canvas, self.ax)   
+                print(f"Valeur de Duree Simulation non valide : {e}")
+            dureeSimulationEntry.delete(0,tk.END)
+            dureeSimulationEntry.insert(0,'')
 
-        largeurBacFrame = tk.Frame(frameGauche, bd=0, bg = '#222831')
-        largeurBacFrame.pack(side=tk.TOP, pady=(10,0))
+        dureeSimulationFrame = tk.Frame(frameDroite, bd=0, bg = '#222831')
+        dureeSimulationFrame.pack(side=tk.TOP, pady=(10,0))
 
-        largeurBacLabel = tk.Label(largeurBacFrame, text="Largeur Bac (x10000):", font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE')
-        largeurBacLabel.grid(row=0, column=0)
+        dureeSimulationLabel = tk.Label(dureeSimulationFrame, text="Durée de simulation (secondes):", font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE')
+        dureeSimulationLabel.grid(row=0, column=0)
 
-        largeurBacEntry = tk.Entry(largeurBacFrame, bd=0 ,font="Lucida 11 bold", bg = '#EEEEEE', fg= '#222831')
-        largeurBacEntry.grid(row=0, column=1)
+        dureeSimulationEntry = tk.Entry(dureeSimulationFrame, bd=0 ,font="Lucida 11 bold", bg = '#EEEEEE', fg= '#222831')
+        dureeSimulationEntry.grid(row=0, column=1)
 
-        largeurBacValidateButton = tk.Button(largeurBacFrame, bd=0, cursor="hand2", text = "Valider", font="Lucida 11 bold", bg = '#393E46', fg= '#EEEEEE', command=setLargeurBac)
-        largeurBacValidateButton.grid(row=0, column=2)
+        dureeSimulationValidateButton = tk.Button(dureeSimulationFrame, bd=0, cursor="hand2", text = "Valider", font="Lucida 11 bold", bg = '#393E46', fg= '#EEEEEE', command=setDureeSimulation)
+        dureeSimulationValidateButton.grid(row=0, column=2)
 
-        largeurBacScale = tk.Scale(frameGauche, from_=0, to=20000, orient='horizontal', font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE', relief='flat', highlightthickness=0, troughcolor='#393E46', command=setLargeurBac)
-        largeurBacScale.set(self.largeurBac*10000)
-        largeurBacScale.pack(side=tk.TOP, padx=20, fill='x')
+        dureeSimulationScale = tk.Scale(frameDroite, from_=0, to=100, orient='horizontal', font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE', relief='flat', highlightthickness=0, troughcolor='#393E46', command=setDureeSimulation)
+        dureeSimulationScale.set(self.dureeSimulation)
 
-        
+        dureeSimulationScale.pack(side=tk.TOP, padx=20, fill='x')
+        dureeSimulationScale.set(self.dureeSimulation)
+
         def setHauteurBac(*event):  
             
             self.displayGrain.set(0)
@@ -330,7 +336,7 @@ class App():
             self.plot(self.canvas, self.ax)  
         
         hauteurBacFrame = tk.Frame(frameDroite, bd=0, bg = '#222831')
-        hauteurBacFrame.pack(side=tk.TOP)
+        hauteurBacFrame.pack(side=tk.TOP, pady=(10,0))
 
         hauteurBacLabel = tk.Label(hauteurBacFrame, text="Hauteur Bac (x10000):", font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE')
         hauteurBacLabel.grid(row=0, column=0)
@@ -344,6 +350,8 @@ class App():
         hauteurBacScale = tk.Scale(frameDroite, from_=-5000, to=10000, orient='horizontal', font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE', relief='flat', highlightthickness=0, troughcolor='#393E46', command=setHauteurBac)
         hauteurBacScale.set(self.hauteurBac*10000)
         hauteurBacScale.pack(side=tk.TOP, padx=20, fill='x')
+
+
 
         def setNbGrains(*event):
 
@@ -360,7 +368,7 @@ class App():
             self.canvas.draw()
             self.plot(self.canvas, self.ax)
         
-        nbGrainsFrame = tk.Frame(frameDroite, bd=0, bg = '#222831')
+        nbGrainsFrame = tk.Frame(self.racine, bd=0, bg = '#222831')
         nbGrainsFrame.pack(side=tk.TOP, pady=(10,0))
 
         nbGrainsLabel = tk.Label(nbGrainsFrame, text="Nombre de grains:", font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE')
@@ -372,9 +380,9 @@ class App():
         nbGrainsValidateButton = tk.Button(nbGrainsFrame, bd=0, cursor="hand2", text = "Valider", font="Lucida 11 bold", bg = '#393E46', fg= '#EEEEEE', command=setNbGrains)
         nbGrainsValidateButton.grid(row=0, column=2)
 
-        nbGrainsScale = tk.Scale(frameDroite, from_=0, to=1000, orient='horizontal', font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE', relief='flat', highlightthickness=0, troughcolor='#393E46', command=setNbGrains)
+        nbGrainsScale = tk.Scale(self.racine, from_=0, to=1000, orient='horizontal', font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE', relief='flat', highlightthickness=0, troughcolor='#393E46', command=setNbGrains)
         nbGrainsScale.set(self.nbGrains)
-        nbGrainsScale.pack(side=tk.TOP, padx=20, fill='x')
+        nbGrainsScale.pack(side=tk.TOP, padx=20, fill='x', pady=(0,10))
         
         def setHauteurGrain(*event):
 
@@ -387,7 +395,7 @@ class App():
                 print(f"Valeur de Ord Origine dir non valide : {e}")
             hauteurGrainEntry.delete(0,tk.END)
             hauteurGrainEntry.insert(0,'')
-
+            
             self.canvas.draw()
             self.plot(self.canvas, self.ax)
         
@@ -448,3 +456,6 @@ class App():
         validateButton = tk.Button(self.racine, text="Enregistrer", bg = '#D65A31', fg= '#EEEEEE', bd=0, font ='Lucida 16 bold', command=self.save)
         self.racine.bind("<Return>", self.save)
         validateButton.pack(side=tk.BOTTOM, fill='x')
+
+"""app = App()
+app.racine.mainloop()"""
