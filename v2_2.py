@@ -19,7 +19,7 @@ TO DO LIST:
 - LE TABLEAU POUR LES VECTEUR NORMAUX ETC...
 """
 
-
+ 
 
 def trajectoire(POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite):
     """
