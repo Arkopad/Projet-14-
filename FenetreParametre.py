@@ -35,6 +35,7 @@ class App():
         self.run = True
 
         self.displayGrain = tk.IntVar()
+        self.activateBoxPhysic = tk.IntVar()
 
         self.creerWidgets()
 
@@ -71,7 +72,9 @@ class App():
             self.hauteurGrain = self.hauteur
 
             while grain < self.nbGrains:
+
                 while True:
+
                     x = self.gauche + (self.rayon*1.3*2)*q
                     y = self.hauteurGrain
                     if x > self.droite or grain >= self.nbGrains:
@@ -438,6 +441,9 @@ class App():
 
         displayGrainCheckBox = tk.Checkbutton(self.racine, onvalue=1, offvalue=0, text="Afficher les grains", font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE', selectcolor="#222831",  bd = 0, activebackground="#393E46", activeforeground="#EEEEEE", variable=self.displayGrain, command=lambda:self.plot(self.canvas, self.ax))
         displayGrainCheckBox.pack(side=tk.TOP)
+
+        activateBoxPhysicCheckBox = tk.Checkbutton(self.racine, onvalue=1, offvalue=0, text="Activer la physique du bac", font="Lucida 11 bold", bg = '#222831', fg= '#EEEEEE', selectcolor="#222831",  bd = 0, activebackground="#393E46", activeforeground="#EEEEEE", variable=self.activateBoxPhysic)
+        activateBoxPhysicCheckBox.pack(side=tk.TOP)
 
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill='x')
         self.canvas.draw()
