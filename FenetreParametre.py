@@ -18,8 +18,7 @@ class App():
 
         self.racine.configure(bg = "#222831")
         moniteurWidth = self.racine.winfo_screenwidth() # Largeur de l'écran
-        moniteurHeight = self.racine.winfo_screenheight() # Hauteur de l'écran
-        self.racine.geometry(f"1000x800+{moniteurWidth//2-500}+{moniteurHeight//2-400}")
+        self.racine.geometry(f"1000x950+{moniteurWidth//2-500}+{0}")
         self.racine.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.getParametres()
         self.limite_bas = -1  #m
@@ -30,11 +29,7 @@ class App():
         self.largeur_silo_droite = 1 #m
         # On définit les droites des parois des silos comme des droites de la forme y = Ax + C afin de mettre sous la forme -Ax + y - C = 0
         self.paroiGauche = lambda x : self.CoeffDir*x + self.OrdOrigine
-        self.vecteur_directeur_paroi_gauche = np.array([1.0, self.CoeffDir])/ np.sqrt(1 + (self.CoeffDir)**2) #pointe vers le haut, normalisé
-        self.vecteur_orthogonal_paroi_gauche = np.array([-self.CoeffDir, 1.0]) #pointe vers l'intérieur du silo, normalisé
         self.paroiDroite = lambda x : -self.CoeffDir*x + self.OrdOrigine
-        self.vecteur_directeur_paroi_droite = np.array([1.0, -self.CoeffDir])/ np.sqrt(1 + (self.CoeffDir)**2) #pointe vers le haut, normalisé
-        self.vecteur_orthogonal_paroi_droite = np.array([-self.CoeffDir, 1.0]) #pointe vers l'intérieur du silo, normalisé
         self.rayon = 5e-3 #m
     
         self.run = True
@@ -351,8 +346,6 @@ class App():
         hauteurBacScale.set(self.hauteurBac*10000)
         hauteurBacScale.pack(side=tk.TOP, padx=20, fill='x')
 
-
-
         def setNbGrains(*event):
 
             self.displayGrain.set(0)
@@ -415,9 +408,6 @@ class App():
         hauteurGrainScale.set(self.hauteur*10000)
         hauteurGrainScale.pack(side=tk.TOP, padx=20, fill='x')
 
-        
-
-        
         self.fig, self.ax = plt.subplots()
         self.ax.set_aspect('equal')
         self.fig.patch.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
@@ -451,7 +441,6 @@ class App():
 
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill='x')
         self.canvas.draw()
-
 
         validateButton = tk.Button(self.racine, text="Enregistrer", bg = '#D65A31', fg= '#EEEEEE', bd=0, font ='Lucida 16 bold', command=self.save)
         self.racine.bind("<Return>", self.save)
