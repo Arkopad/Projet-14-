@@ -424,7 +424,8 @@ def maj_contact(grains_passes, CONTACT, coefficient_frottement, raideur_normale,
             
             # Contact avec le bac ?
             else:
-                grains_passes += 1
+                if POSITION[indice_temps-1, i, 1] >= debut_du_trou:
+                    grains_passes += 1
                 distance_bac = pos_i[1] - hauteur_bac
                 penetration_bac = distance_bac - rayon_i
                 if penetration_bac < 0:
@@ -705,7 +706,7 @@ if __name__ == "__main__":
     ACCELERATION = np.zeros((nb_temps, nb_grains, 2))
     CONTACT = np.zeros((nb_grains, nb_grains+3, 2), dtype=np.int64)
     ALLONGEMENT = np.zeros((nb_grains, nb_grains+3, 2), dtype=np.float64)
-    pas_debit = 10
+    pas_debit = 200
     intervalle_debit = pas_de_temps*pas_debit
     taille_debit = int(duree_simulation/(intervalle_debit))
     DEBIT = np.zeros(taille_debit)
@@ -791,16 +792,34 @@ if __name__ == "__main__":
 
     # Boucle principale
     print("Simulation en cours...")
+
     start_time = time.time()
     nb_ancien_grain_passes = grains_passes
+    ancien_temps = temps
+    indice_debit = 0
     for indice_temps in tqdm(range(1, nb_temps)):
         # Actualisation du temps
         temps += pas_de_temps
 
         # Actualisation de la variable comptant le nombre de grains pour le débit:
-        if temps%intervalle_debit == 0:
-            DEBIT[indice_temps*pas_debit] = (grains_passes-nb_ancien_grain_passes)/(intervalle_debit) 
-            nb_ancien_grain_passes = grains_passes
+        if temps - ancien_temps >= intervalle_debit:
+            if nb_ancien_grain_passes == 0 and grains_passes > 0:
+                temps_debut = temps
+                DEBIT[indice_debit] = (grains_passes-nb_ancien_grain_passes)/(intervalle_debit) 
+                nb_ancien_grain_passes = grains_passes
+                ancien_temps = temps
+                indice_debit += 1
+            elif grains_passes == nb_grains:
+                temps_arret = temps
+                DEBIT[indice_debit] = 0
+                nb_ancien_grain_passes = grains_passes
+                ancien_temps = temps
+                indice_debit += 1
+            else:
+                DEBIT[indice_debit] = (grains_passes-nb_ancien_grain_passes)/(intervalle_debit) 
+                nb_ancien_grain_passes = grains_passes
+                ancien_temps = temps
+                indice_debit += 1
         
         
         # Actualisation de la grille, de la position et de la vitesse
@@ -817,9 +836,10 @@ if __name__ == "__main__":
     # Fin de la boucle principale
     print("Fin de la simulation")
     print("Temps de calcul: ", time.time() - start_time, "secondes")
+    print("Débit moyen selon temps d'arrêt: ", nb_grains/temps_arret, "grains/s")
+    print("Débit moyen selon la temps d'arrêt et temps début: ", nb_grains/(temps_arret - temps_debut), "grains/s")
+    print("Débit moyen selon le tableau: ", np.mean(DEBIT), "grains/s")
 
     #Affichage:
-    for i in range(len(DEBIT)):
-        print(DEBIT[i])
     trajectoire(DEBIT, POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite)
     grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite, nb_temps, pas_de_temps)
