@@ -49,7 +49,7 @@ class App():
         ax.clear()
         # dessin du silo dans le tableau graphique matplot
         # on trouve le x du debut du trou pour les deux parois:
-        self.limite_bas = self.hauteurBac - 0.01
+        self.limite_bas = self.hauteurBac - 0.1
         x_debutTrou_gauche = (self.debutTrou - self.OrdOrigine)/self.CoeffDir
         x_debutTrou_droite = (self.debutTrou - self.OrdOrigine)/-self.CoeffDir
         X1 = np.linspace(self.largeur_silo_gauche, x_debutTrou_gauche, 100)
