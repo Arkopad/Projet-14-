@@ -21,7 +21,7 @@ TO DO LIST:
 
  
 
-def trajectoire(DEBIT, POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite):
+def trajectoire(POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite):
     """
     Affiche la trajectoire des grains dans un graphe matplotlib.
 
@@ -302,6 +302,18 @@ def derivee_allongement_normal_grain_grain(vitesse_i, vitesse_j, vecteur_normal)
         
     return derivee_allongement
 
+def maj_grille(GRILLE, POSITION, indice_temps, limite_gauche, mise_a_jour, c):
+    # Grille
+    for grain, maj in enumerate(mise_a_jour):
+        if maj:
+            # On associe à chaque case de la grille les grains qui sont dans cette case
+            # Probleme car pos_case peut etre negatif pour ca on déplace le repere
+            pos_case = (int((POSITION[indice_temps, grain, 0] + abs(limite_gauche))/c), int((POSITION[indice_temps,grain,1]+ abs(limite_bas))/c))
+            GRILLE[pos_case[0], pos_case[1], grain] = 1
+
+    return GRILLE
+
+
 @njit
 def derivee_allongement_normal_grain_paroi(vitesse_i, vecteur_normal_paroi):
     """
@@ -309,7 +321,7 @@ def derivee_allongement_normal_grain_paroi(vitesse_i, vecteur_normal_paroi):
     return np.dot(vitesse_i, vecteur_normal_paroi)
 
 @njit
-def actualisation_1(mise_a_jour, POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATION, GRILLE, indice_temps, pas_de_temps, nb_grains, c, limite_gauche):
+def actualisation_1(POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATION, indice_temps, pas_de_temps):
     """
     Fonction qui actualise la grille, la position et la vitesse des grains à l'instant k
 
@@ -327,25 +339,7 @@ def actualisation_1(mise_a_jour, POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATI
     POSITION[indice_temps] = POSITION[indice_temps-1] + VITESSE_DEMI_PAS[indice_temps-1]*pas_de_temps
     VITESSE[indice_temps] = VITESSE_DEMI_PAS[indice_temps-1] + ACCELERATION[indice_temps-1]*pas_de_temps
 
-    # Grille
-    for grain, maj in enumerate(mise_a_jour):
-        if maj:
-            # On associe à chaque case de la grille les grains qui sont dans cette case
-            # Probleme car pos_case peut etre negatif pour ca on déplace le repere:
-            try:
-                pos_case = (int((POSITION[indice_temps, grain, 0] + abs(limite_gauche))/c), int((POSITION[indice_temps,grain,1]+ abs(limite_gauche))/c))
-                GRILLE[pos_case[0], pos_case[1], grain] = 1
-            except:
-                #on stope les grains qui sont dans le bac:
-                VITESSE[indice_temps, grain] = np.array([0,0])
-                ACCELERATION[indice_temps, grain] = np.array([0,0])
-                VITESSE_DEMI_PAS[indice_temps, grain] = np.array([0,0])
-                # et on arrete de les mettres a jour:
-                # Trouver l'index de tous les éléments qui ne sont pas égaux à 'grain1'
-                mise_a_jour[grain] = 0
-
-
-    return GRILLE, POSITION, VITESSE, mise_a_jour
+    return POSITION, VITESSE, mise_a_jour
 
 @njit
 def voisinage(mise_a_jour, grain, x, y, GRILLE):
@@ -403,7 +397,7 @@ def maj_contact(grains_passes, CONTACT, coefficient_frottement, raideur_normale,
                     nouveau_allongement[i, nb_grains, 0] = penetration_gauche
                     if CONTACT[i, nb_grains, 1]:
                         norme_normale = -penetration_gauche * raideur_normale
-                        nouveau_allongement[i, nb_grains, 1] = coefficient_frottement * norme_normale / raideur_tangentielle
+                        nouveau_allongement[i, nb_grains, 1] = coefficient_frottement * norme_normale / raideur_tangentielle *(1/2)
                     else:
                         allongement_tangentiel = ALLONGEMENT[i, nb_grains, 1]
                         allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, vecteur_tangent_paroi_gauche, pas_de_temps, allongement_tangentiel)
@@ -414,9 +408,9 @@ def maj_contact(grains_passes, CONTACT, coefficient_frottement, raideur_normale,
                     if penetration_droite < 0:
                         nouveau_contact[i, nb_grains+1] = 1
                         nouveau_allongement[i, nb_grains+1, 0] = penetration_droite
-                        if CONTACT[i, nb_grains+1, 1]:
+                        if CONTACT[i, nb_grains+1, 1]: # si glissement
                             norme_normale = -penetration_droite * raideur_normale
-                            nouveau_allongement[i, nb_grains+1, 1] = coefficient_frottement * norme_normale / raideur_tangentielle
+                            nouveau_allongement[i, nb_grains+1, 1] = coefficient_frottement * norme_normale / raideur_tangentielle *(1/2)
                         else:
                             allongement_tangentiel = ALLONGEMENT[i, nb_grains+1, 1]
                             allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, vecteur_tangent_paroi_droite, pas_de_temps, allongement_tangentiel)
@@ -424,15 +418,18 @@ def maj_contact(grains_passes, CONTACT, coefficient_frottement, raideur_normale,
             
             # Contact avec le bac ?
             else:
-                grains_passes += 1
+                if POSITION[indice_temps-1, i, 1] >= debut_du_trou:
+                    grains_passes += 1
                 distance_bac = pos_i[1] - hauteur_bac
                 penetration_bac = distance_bac - rayon_i
                 if penetration_bac < 0:
+                    # Contact avec le bac:
+                    print("contact")
                     nouveau_contact[i, nb_grains+2] = 1
                     nouveau_allongement[i, nb_grains+2, 0] = penetration_bac
                     if CONTACT[i, nb_grains+2, 1]:
                         norme_normale = -penetration_droite * raideur_normale
-                        nouveau_allongement[i, nb_grains+1, 1] = coefficient_frottement * norme_normale / raideur_tangentielle
+                        nouveau_allongement[i, nb_grains+1, 1] = coefficient_frottement * norme_normale / raideur_tangentielle *(1/2)
                     else:
                         allongement_tangentiel = ALLONGEMENT[i, nb_grains+2, 1]
                         allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, np.array([-1.0, 0.0]), pas_de_temps, allongement_tangentiel)
@@ -477,7 +474,8 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
     ======
     """
 
-    for grain1, maj in enumerate(mise_a_jour):
+    for grain1 in range(len(mise_a_jour)):
+        maj = mise_a_jour[grain1]
 
         if maj:
             #Variables utiles:
@@ -579,9 +577,9 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                                 force_contact += force_tangentielle
                         # Si la physique du bac n'est pas activé:        
                         else:
-                            VITESSE[indice_temps, grain1] = np.array([0,0])
-                            ACCELERATION[indice_temps, grain1] = np.array([0,0])
-                            VITESSE_DEMI_PAS[indice_temps, grain1] = np.array([0,0])
+                            VITESSE[indice_temps, grain1] = np.array([0.0,0.0])
+                            ACCELERATION[indice_temps, grain1] = np.array([0.0,0.0])
+                            VITESSE_DEMI_PAS[indice_temps, grain1] = np.array([0.0,0.0])
                             mise_a_jour[grain1] = 0
                     
                     # Rencontre avec un autre grain ?
@@ -705,12 +703,10 @@ if __name__ == "__main__":
     ACCELERATION = np.zeros((nb_temps, nb_grains, 2))
     CONTACT = np.zeros((nb_grains, nb_grains+3, 2), dtype=np.int64)
     ALLONGEMENT = np.zeros((nb_grains, nb_grains+3, 2), dtype=np.float64)
-    pas_debit = 10
+    pas_debit = 100
     intervalle_debit = pas_de_temps*pas_debit
-    taille_debit = int(duree_simulation/(intervalle_debit))
-    DEBIT = np.zeros(taille_debit)
     grains_passes = 0 # nb des grains déjà passés par le trou --> grains calcul débit
-    mise_a_jour = np.array([1 for i in range(nb_grains)])  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
+    mise_a_jour = np.array([1 for i in range(nb_grains)], dtype=np.int64)  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
 #-----------------------------------------------------------------------------------------------------------------------------------------------
     # Definition bac de réception
     hauteur_bac = app.hauteurBac #m
@@ -791,23 +787,40 @@ if __name__ == "__main__":
 
     # Boucle principale
     print("Simulation en cours...")
+
     start_time = time.time()
     nb_ancien_grain_passes = grains_passes
+    ancien_temps = temps
+    indice_debit = 0
     for indice_temps in tqdm(range(1, nb_temps)):
         # Actualisation du temps
         temps += pas_de_temps
 
         # Actualisation de la variable comptant le nombre de grains pour le débit:
-        if temps%intervalle_debit == 0:
-            DEBIT[indice_temps*pas_debit] = (grains_passes-nb_ancien_grain_passes)/(intervalle_debit) 
-            nb_ancien_grain_passes = grains_passes
+        if temps - ancien_temps >= intervalle_debit:
+            if nb_ancien_grain_passes == 0 and grains_passes > 0:
+                temps_debut = temps
+                nb_ancien_grain_passes = grains_passes
+                ancien_temps = temps
+                indice_debit += 1
+            elif grains_passes == nb_grains:
+                temps_arret = temps
+                nb_ancien_grain_passes = grains_passes
+                ancien_temps = temps
+                indice_debit += 1
+            else:
+                nb_ancien_grain_passes = grains_passes
+                ancien_temps = temps
+                indice_debit += 1
         
         
         # Actualisation de la grille, de la position et de la vitesse
-        GRILLE, POSITION, VITESSE, mise_a_jour = actualisation_1(mise_a_jour,POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATION, GRILLE, indice_temps, pas_de_temps, nb_grains, c, limite_gauche)   
+        POSITION, VITESSE, mise_a_jour = actualisation_1(POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATION, indice_temps, pas_de_temps)   
 
-        #On met à jour la liste des contacts:
-        grains_passes, CONTACT, ALLONGEMENT = maj_contact(grains_passes, CONTACT, coefficient_frottement, raideur_normale, raideur_tangentielle, GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac)
+        #On met à jour la liste des contacts et de la grille:
+        if indice_temps % 3 == 0:
+            GRILLE = maj_grille(GRILLE, POSITION, indice_temps, limite_gauche, mise_a_jour, c)
+            grains_passes, CONTACT, ALLONGEMENT = maj_contact(grains_passes, CONTACT, coefficient_frottement, raideur_normale, raideur_tangentielle, GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac)
         # Calcul des efforts de contact pour mise à jour des vitesses à temps k+1/2 et accélérations à temps k
         mise_a_jour, ACCELERATION, VITESSE_DEMI_PAS, CONTACT, VITESSE, VITESSE_DEMI_PAS = resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jour, indice_temps, AMORTISSEMENT, POSITION, VITESSE, MASSE, RAYON, CONTACT, ALLONGEMENT, ACCELERATION, VITESSE_DEMI_PAS, nb_grains, raideur_normale, raideur_tangentielle, coefficient_trainee, vecteur_orthogonal_paroi_gauche, vecteur_orthogonal_paroi_droite, vecteur_tangent_paroi_gauche, vecteur_tangent_paroi_droite)
         
@@ -817,9 +830,7 @@ if __name__ == "__main__":
     # Fin de la boucle principale
     print("Fin de la simulation")
     print("Temps de calcul: ", time.time() - start_time, "secondes")
-
+    print("Débit moyen selon la temps d'arrêt et temps début: ", nb_grains/(temps_arret - temps_debut), "grains/s")
     #Affichage:
-    for i in range(len(DEBIT)):
-        print(DEBIT[i])
-    trajectoire(DEBIT, POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite)
+    trajectoire(POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite)
     grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite, nb_temps, pas_de_temps)
