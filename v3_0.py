@@ -188,7 +188,7 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     # Création de l'échelle de couleur
     cmap = cm.ScalarMappable(norm=norm, cmap='jet')
     cb = plt.colorbar(cmap)
-    cb.set_label('Vitesse', color='#EEEEEE')
+    cb.set_label('Vitesse(m/s)', color='#EEEEEE')
     plt.setp(plt.getp(cb.ax.axes, 'yticklabels'), color="#EEEEEE")
     cb.ax.yaxis.set_tick_params(color='#EEEEEE')
     fig.patch.set_facecolor('#222831')                          # On définit la couleur de fond de la figure
@@ -408,7 +408,7 @@ def maj_contact(limite_bas, CONTACT, coefficient_frottement, raideur_normale, ra
     ======
     """
 
-    nouveau_contact = np.zeros((nb_grains, nb_grains+3, 2), dtype=np.int64) # premiere valeur: indice du contact, deuxieme: glissement ou non
+    nouveau_contact = np.zeros((nb_grains, nb_grains+3, 2)) # premiere valeur: indice du contact oui ou non, deuxieme: glissement ou non
     nouveau_allongement = np.zeros((nb_grains, nb_grains+3, 2), dtype=np.float64) # premiere valeur: normale, deuxieme: tangentielle
     for i, maj in enumerate(mise_a_jour):
         if maj:
@@ -421,7 +421,7 @@ def maj_contact(limite_bas, CONTACT, coefficient_frottement, raideur_normale, ra
                 penetration_gauche = allongement_normal_grain_paroi(pos_i, rayon_i, Agauche, Cgauche)
 
                 if penetration_gauche < 0:
-                    nouveau_contact[i, nb_grains] = 1
+                    nouveau_contact[i, nb_grains, 0] = True
                     nouveau_allongement[i, nb_grains, 0] = penetration_gauche
                     if CONTACT[i, nb_grains, 1]: # Si glissement
                         norme_normale = -penetration_gauche * raideur_normale
@@ -434,11 +434,12 @@ def maj_contact(limite_bas, CONTACT, coefficient_frottement, raideur_normale, ra
                 else:
                     penetration_droite = allongement_normal_grain_paroi(pos_i, rayon_i, Adroite, Cdroite)
                     if penetration_droite < 0:
-                        nouveau_contact[i, nb_grains+1] = 1
+                        nouveau_contact[i, nb_grains+1, 0] = True
                         nouveau_allongement[i, nb_grains+1, 0] = penetration_droite
                         if CONTACT[i, nb_grains+1, 1]: # Si glissement
                             norme_normale = -penetration_droite * raideur_normale
                             nouveau_allongement[i, nb_grains+1, 1] = coefficient_frottement * norme_normale / raideur_tangentielle
+
                         else:
                             allongement_tangentiel = ALLONGEMENT[i, nb_grains+1, 1]
                             allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, vecteur_tangent_paroi_droite, pas_de_temps, allongement_tangentiel)
@@ -450,11 +451,11 @@ def maj_contact(limite_bas, CONTACT, coefficient_frottement, raideur_normale, ra
                 penetration_bac = distance_bac - rayon_i
                 if penetration_bac < 0:
                     # Contact avec le bac:
-                    nouveau_contact[i, nb_grains+2] = 1
+                    nouveau_contact[i, nb_grains+2, 0] = True
                     nouveau_allongement[i, nb_grains+2, 0] = penetration_bac
                     if CONTACT[i, nb_grains+2, 1]: # Si glissement
                         norme_normale = -penetration_droite * raideur_normale
-                        nouveau_allongement[i, nb_grains+1, 1] = coefficient_frottement * norme_normale / raideur_tangentielle
+                        nouveau_allongement[i, nb_grains+2, 1] = coefficient_frottement * norme_normale / raideur_tangentielle
                     else:
                         allongement_tangentiel = ALLONGEMENT[i, nb_grains+2, 1]
                         allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, np.array([-1.0, 0.0]), pas_de_temps, allongement_tangentiel)
@@ -472,7 +473,7 @@ def maj_contact(limite_bas, CONTACT, coefficient_frottement, raideur_normale, ra
 
                     allongement_normal = allongement_normal_grain_grain(pos_i, pos_j, rayon_i, rayon_j)
                     if allongement_normal < 0:
-                        nouveau_contact[i, j] = 1
+                        nouveau_contact[i, j] = True
                         nouveau_allongement[i, j, 0] = allongement_normal
                         if CONTACT[i, j, 1]: # Si glissement
                             norme_normale = -allongement_normal * raideur_normale
@@ -547,7 +548,7 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                         else:
                             force_tangentielle = np.sign(-coef_tangent) * coefficient_frottement * norme_normale * vecteur_tangent_paroi_gauche
                             force_contact += force_tangentielle
-                            CONTACT[grain1, nb_grains, 1] = 1 # Maj glissement
+                            CONTACT[grain1, nb_grains, 1] = True # Maj glissement
 
 
                     # Paroi droite
@@ -572,7 +573,7 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                         else:
                             force_tangentielle = np.sign(-coef_tangent) * coefficient_frottement * norme_normale * vecteur_tangent_paroi_droite
                             force_contact += force_tangentielle
-                            CONTACT[grain1, nb_grains+1, 1] = 1 # Maj glissement
+                            CONTACT[grain1, nb_grains+1, 1] = True # Maj glissement
                     
                     # Bac
                     elif contact == nb_grains+2:
@@ -598,7 +599,7 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                             else:
                                 force_tangentielle = np.sign(-coef_tangent) * coefficient_frottement * norme_normale * np.array([-1.0, 0.0])
                                 force_contact += force_tangentielle
-                                CONTACT[grain1, nb_grains+2, 1] = 1 # Maj glissement
+                                CONTACT[grain1, nb_grains+2, 1] = True # Maj glissement
 
                         # Si la physique du bac n'est pas activé:        
                         else:
@@ -635,7 +636,7 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                         else:
                             force_tangentielle = np.sign(-coef_tangent) * coefficient_frottement * norme_normale * vecteur_tangentiel_inter_grain
                             force_contact += force_tangentielle
-                            CONTACT[grain1, grain2, 1] = 1 # il y a glissement
+                            CONTACT[grain1, grain2, 1] = True # il y a glissement
                     
                     # Air:
                     # Force de trainée:
@@ -732,14 +733,14 @@ if __name__ == "__main__":
     VITESSE = np.zeros((nb_temps, nb_grains, 2))
     VITESSE_DEMI_PAS = np.zeros((nb_temps, nb_grains, 2))
     ACCELERATION = np.zeros((nb_temps, nb_grains, 2))
-    CONTACT = np.zeros((nb_grains, nb_grains+3, 2), dtype=np.int64)
+    CONTACT = np.zeros((nb_grains, nb_grains+3, 2), dtype=bool)
     ALLONGEMENT = np.zeros((nb_grains, nb_grains+3, 2), dtype=np.float64)
 
     # VARIABLES POUR LE DEBIT
     GRAINS_PASSES = np.zeros(nb_temps) # liste des grains qui sont passés par le trou à chaque instant
     IS_GRAIN_PASSE = np.zeros(nb_grains, dtype=bool) # liste de booléens qui permet de savoir si le grain est déjà passé par le trou ou pas
 
-    mise_a_jour = np.array([True for i in range(nb_grains)], dtype=bool)  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
+    mise_a_jour = np.array([True for i in range(nb_grains)], dtype=bool) + True  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
 #-----------------------------------------------------------------------------------------------------------------------------------------------
     # SILO:
     # Definition bac de réception
