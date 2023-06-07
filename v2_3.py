@@ -22,7 +22,7 @@ TO DO LIST:
 
  
 
-def trajectoire(DEBIT, POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite):
+def trajectoire(POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite):
     """
     Affiche la trajectoire des grains dans un graphe matplotlib.
 
@@ -69,24 +69,9 @@ def trajectoire(DEBIT, POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, 
     plt.legend()
     plt.show()
 
-    fig2, ax2 = plt.subplots()
-    fig2.patch.set_facecolor('#222831')
-    TIME = np.linspace(0, nb_temps*pas_de_temps, DEBIT.shape[0])
-
-    ax2.plot(TIME, DEBIT)
-    ax2.set_facecolor('#222831') # On définit la couleur de fond de la figure
-    ax2.tick_params(axis='x', colors='white')
-    ax2.tick_params(axis='y', colors='white')
-    ax2.xaxis.label.set_color('white')
-    ax2.yaxis.label.set_color('white')
-    ax2.xaxis.label.set_color('#EEEEEE')
-    ax2.grid(alpha=0.1)
-
-    plt.legend()
-    plt.show()
 
 
-def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, largeur_silo_gauche, largeur_silo_droite, nb_temps, pas_de_temps):
+def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite, nb_temps, pas_de_temps, GRAINS_PASSES):
     """
     Fait une animation de la chute des grains dans le silo.
 
@@ -104,9 +89,9 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     """
     print("Animation en cours...")
     # fenetre pour le curseur d'accelerateur
-    slider_fig, slider_ax = plt.subplots()
+    slider_fig, slider_ax = plt.subplots(figsize=(6, 1))
     # Positionnement des axes de la fenêtre du curseur
-    slider_ax.set_position([0.1, 0.1, 0.8, 0.1])
+    slider_ax.set_position([0.1, 0.45, 0.82, 0.1])
     # Valeur initiale de l'accélérateur
     accelerateur = 100
     # Fonction de mise à jour appelée lorsque la valeur du curseur change
@@ -115,11 +100,15 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
         nonlocal ani
 
         accelerateur = val
+        # on empeche l'accelerateur d'etre nul
+        if accelerateur == 0:
+            accelerateur = 1
+        # On stoppe l'animation en cours et on la relance avec la nouvelle valeur de l'accelerateur
         ani.event_source.stop()
         ani = animation.FuncAnimation(fig, animate, frames=int(POSITION.shape[0]/accelerateur), interval=1, blit=True)
 
     # Création du curseur
-    accelerateur_slider = Slider(slider_ax, 'Accélérateur', 0, 500, valinit=accelerateur, valstep=10)
+    accelerateur_slider = Slider(slider_ax, 'Vitesse', 0, 500, valinit=accelerateur, valstep=10)
     accelerateur_slider.on_changed(update_accelerateur)
 
     # fenetre de l'animation
@@ -130,8 +119,8 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     # on trouve le x du debut du trou pour les deux parois:
     x_debut_du_trou_gauche = (debut_du_trou - Cgauche)/Agauche
     x_debut_du_trou_droite = (debut_du_trou - Cdroite)/Adroite
-    X1 = np.linspace(largeur_silo_gauche, x_debut_du_trou_gauche, 100)
-    X2 = np.linspace(x_debut_du_trou_droite, largeur_silo_droite, 100)
+    X1 = np.linspace(limite_gauche, x_debut_du_trou_gauche, 100)
+    X2 = np.linspace(x_debut_du_trou_droite, limite_droite, 100)
     plt.plot(X1, paroiGauche(X1), color='#EEEEEE')
     plt.plot(X2, paroiDroite(X2), color='#EEEEEE')
     
@@ -143,22 +132,36 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     # dessin des grains dans le tableau graphique matplot
     couleurs = ['#EEEEEE', 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'orange', 'purple', 'brown']
     grains = []
-    #texts = []
     for grain in range(nb_grains):
         grains.append(ax.add_patch(patches.Circle((POSITION[0, grain, 0], POSITION[0, grain, 1]), radius=RAYON[grain], fill=True, color=couleurs[grain%len(couleurs)])))
-        #texts.append(ax.text(POSITION[0, grain, 0], POSITION[0, grain, 1], str(grain), ha='center', va='center', fontsize=8, color='white'))
     
     time_text = ax.text(0.05, 0.99, '', transform=ax.transAxes, verticalalignment='top', fontsize=12, color='#EEEEEE')
     debit_text = ax.text(0.05, 0.05, "", transform=ax.transAxes, verticalalignment="bottom", fontsize=12, color='#EEEEEE')   
 
 
-    TEMPS_DEBIT = [True for i in range(int(nb_temps*pas_de_temps * 10) + 1)]
+    IS_DEBIT_DEJA_CALCULE = [True for i in range(int(nb_temps*pas_de_temps * 10) + 1)] # Liste permettant de rentrer dans la boucle une seule fois (à cause du modulo et du fait que le temps est un float)
+    DEBIT_TEMP = GRAINS_PASSES.copy() # Liste temporaire permettant de calculer le débit instantané
     def animate(frame):
         nonlocal accelerateur
-        nonlocal TEMPS_DEBIT
-        global DEBIT
+        nonlocal IS_DEBIT_DEJA_CALCULE
+        nonlocal DEBIT_TEMP
+        global GRAINS_PASSES
     
         time_text.set_text(f"Indice temps: {frame*accelerateur}/{nb_temps}, temps(s): {frame*accelerateur*pas_de_temps:.2f}/{nb_temps*pas_de_temps:.2f}")
+
+        # Si on a atteint la fin de la simulation on remplace la liste débit_temp par la liste debit initiale
+        if (frame + 1) == int(POSITION.shape[0]/accelerateur) or frame == 0:  
+            DEBIT_TEMP = GRAINS_PASSES.copy()
+            
+            IS_DEBIT_DEJA_CALCULE = [True for i in range(int(nb_temps*pas_de_temps * 10) + 1)]
+
+        # Toutes les 0.1s à l'aide de la liste IS_DEBIT_DEJA_CALCULE on affiche le débit actuel
+        if int(10*frame*accelerateur*pas_de_temps) % 1 == 0 and IS_DEBIT_DEJA_CALCULE[int(10*frame*accelerateur*pas_de_temps)] and frame != 0 and DEBIT_TEMP[frame*accelerateur] != nb_grains: 
+            
+            debit_text.set_text(f"débit: {10 * (DEBIT_TEMP[frame*accelerateur])} grains/s")
+            DEBIT_TEMP -= DEBIT_TEMP[frame * accelerateur] # On retire les grains qui sont sortis du silo de la liste temporaire
+            IS_DEBIT_DEJA_CALCULE[int(10*frame*accelerateur*pas_de_temps)] = False 
+
 
         for grain in range(nb_grains):
             vitesse = VITESSE[
@@ -171,9 +174,8 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
             grains[grain].center = (
                 POSITION[frame * accelerateur, grain, 0],
                 POSITION[frame * accelerateur, grain, 1],
-            )
-            # texts[grain].set_position((POSITION[frame*accelerateur, grain, 0], POSITION[frame*accelerateur, grain, 1]))
-        return grains + [time_text] + [debit_text] #+ texts
+            )  # Mise à jour de la position du grain
+        return grains + [time_text] + [debit_text] 
 
     
     ani = animation.FuncAnimation(fig, animate, frames=int(POSITION.shape[0]/accelerateur), interval=1, blit=True)
@@ -197,7 +199,6 @@ def grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, 
     plt.ylim([limite_bas, limite_haut])
     slider_fig.show()
     plt.show()
-
 
 
 
@@ -312,6 +313,26 @@ def derivee_allongement_normal_grain_paroi(vitesse_i, vecteur_normal_paroi):
     """
     return np.dot(vitesse_i, vecteur_normal_paroi)
 
+def calcul_grains_passes(GRAINS_PASSES, IS_GRAIN_PASSE, POSITION, debut_du_trou, nb_grains, nb_temps, indice_temps):
+    """
+    Calcul à chaque instant le nombre de grains passés par le trou
+
+    Paramètres
+    ==========
+
+    Retour
+    ======
+    GRAINS_PASSES : liste, nombre de grains passés par le trou à chaque indice de temps
+    """
+    GRAINS_PASSES[indice_temps] = GRAINS_PASSES[indice_temps - 1]
+
+    for grain in range(nb_grains):
+        if ((IS_GRAIN_PASSE[grain] == False) and (POSITION[indice_temps, grain, 1] < debut_du_trou) and (indice_temps < nb_temps - 1)):
+            GRAINS_PASSES[indice_temps] = GRAINS_PASSES[indice_temps - 1] + 1
+            IS_GRAIN_PASSE[grain] = True  # Marquer le grain comme compté
+
+    return GRAINS_PASSES
+
 def maj_grille(GRILLE, POSITION, indice_temps, limite_gauche, limite_bas, mise_a_jour, c):
     # Grille
     for grain, maj in enumerate(mise_a_jour):
@@ -376,7 +397,7 @@ def voisinage(mise_a_jour, grain, x, y, GRILLE):
     return voisinage
 
 @njit
-def maj_contact(limite_bas, grains_passes, CONTACT, coefficient_frottement, raideur_normale, raideur_tangentielle, GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac):
+def maj_contact(limite_bas, CONTACT, coefficient_frottement, raideur_normale, raideur_tangentielle, GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac):
     """
     Met à jour la liste des contacts
 
@@ -425,9 +446,6 @@ def maj_contact(limite_bas, grains_passes, CONTACT, coefficient_frottement, raid
             
             # Contact avec le bac ?
             else:
-                # Pour le débit
-                if POSITION[indice_temps-1, i, 1] >= debut_du_trou:
-                    grains_passes += 1
                 distance_bac = pos_i[1] - hauteur_bac
                 penetration_bac = distance_bac - rayon_i
                 if penetration_bac < 0:
@@ -465,7 +483,7 @@ def maj_contact(limite_bas, grains_passes, CONTACT, coefficient_frottement, raid
                             nouveau_allongement[i, j, 1] = allongement_tangentiel
 
     
-    return grains_passes, nouveau_contact, nouveau_allongement
+    return nouveau_contact, nouveau_allongement
 
 
 @njit
@@ -710,11 +728,11 @@ if __name__ == "__main__":
     ACCELERATION = np.zeros((nb_temps, nb_grains, 2))
     CONTACT = np.zeros((nb_grains, nb_grains+3, 2), dtype=np.int64)
     ALLONGEMENT = np.zeros((nb_grains, nb_grains+3, 2), dtype=np.float64)
-    pas_debit = 10000
-    intervalle_debit = pas_de_temps*pas_debit
-    taille_debit = int(duree_simulation/(intervalle_debit))
-    DEBIT = np.zeros(taille_debit)
-    grains_passes = 0 # nb des grains déjà passés par le trou --> grains calcul débit
+
+    # VARIABLES POUR LE DEBIT
+    GRAINS_PASSES = np.zeros(nb_temps) # liste des grains qui sont passés par le trou à chaque instant
+    IS_GRAIN_PASSE = np.zeros(nb_grains, dtype=bool) # liste de booléens qui permet de savoir si le grain est déjà passé par le trou ou pas
+
     mise_a_jour = np.array([1 for i in range(nb_grains)])  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
     mise_a_jour = np.copy(mise_a_jour)
 #-----------------------------------------------------------------------------------------------------------------------------------------------
@@ -800,32 +818,11 @@ if __name__ == "__main__":
     print("Simulation en cours...")
 
     start_time = time.time()
-    nb_ancien_grain_passes = grains_passes
     ancien_temps = temps
-    indice_debit = 0
     for indice_temps in tqdm(range(1, nb_temps)):
         # Actualisation du temps
         temps += pas_de_temps
 
-         # Actualisation de la variable comptant le nombre de grains pour le débit:
-        if temps - ancien_temps >= intervalle_debit or indice_temps == nb_temps-1 or grains_passes == nb_grains:
-            if nb_ancien_grain_passes == 0 and grains_passes > 0:
-                temps_debut = temps
-                DEBIT[indice_debit] = (grains_passes-nb_ancien_grain_passes)/(intervalle_debit) 
-                nb_ancien_grain_passes = grains_passes
-                ancien_temps = temps
-                indice_debit += 1
-            elif grains_passes == nb_grains:
-                temps_arret = temps
-                DEBIT[indice_debit] = (grains_passes-nb_ancien_grain_passes)/(intervalle_debit) 
-
-            else:
-                DEBIT[indice_debit] = (grains_passes-nb_ancien_grain_passes)/(intervalle_debit) 
-                nb_ancien_grain_passes = grains_passes
-                ancien_temps = temps
-                indice_debit += 1
-        
-        
         # Actualisation de la grille, de la position et de la vitesse
         POSITION, VITESSE = actualisation_1(POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATION, indice_temps, pas_de_temps)   
 
@@ -836,15 +833,18 @@ if __name__ == "__main__":
             GRILLE = maj_grille(GRILLE, POSITION, indice_temps, limite_gauche, limite_bas, mise_a_jour, c)
         
         # Mise à jour des contacts:
-        grains_passes, CONTACT, ALLONGEMENT = maj_contact(limite_bas, grains_passes, CONTACT, coefficient_frottement, raideur_normale, raideur_tangentielle, GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac)
+        CONTACT, ALLONGEMENT = maj_contact(limite_bas, CONTACT, coefficient_frottement, raideur_normale, raideur_tangentielle, GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac)
         # Calcul des efforts de contact pour mise à jour des vitesses à temps k+1/2 et accélérations à temps k
+        
         mise_a_jour, ACCELERATION, VITESSE_DEMI_PAS, CONTACT, VITESSE, VITESSE_DEMI_PAS = resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jour, indice_temps, AMORTISSEMENT, POSITION, VITESSE, MASSE, RAYON, CONTACT, ALLONGEMENT, ACCELERATION, VITESSE_DEMI_PAS, nb_grains, raideur_normale, raideur_tangentielle, coefficient_trainee, vecteur_orthogonal_paroi_gauche, vecteur_orthogonal_paroi_droite, vecteur_tangent_paroi_gauche, vecteur_tangent_paroi_droite)
         
+        # calcul du débit
+        GRAINS_PASSES = calcul_grains_passes(GRAINS_PASSES, IS_GRAIN_PASSE, POSITION, debut_du_trou, nb_grains, nb_temps, indice_temps)
+
 
     # Fin de la boucle principale
     print("Fin de la simulation")
     print("Temps de calcul: ", time.time() - start_time, "secondes")
-    print("Débit moyen selon la temps d'arrêt et temps début: ", nb_grains/(temps_arret - temps_debut), "grains/s")
 
 
     # Initialize variables
@@ -861,10 +861,9 @@ if __name__ == "__main__":
     Q = C * (g * H)**(1/2) * (D - k * d)**(5/2)
     volume_grain = 4/3 * pi * np.mean(RAYON)**3
     print(f'Formule analytique test:{Q*1/volume_grain}')
-    print("Débit moyen selon le tableau: ", np.mean(DEBIT), "grains/s")
 
 
 
     #Affichage:
-    trajectoire(DEBIT, POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite)
-    grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite, nb_temps, pas_de_temps)
+    trajectoire(POSITION, nb_grains, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite)
+    grain_anime(POSITION, VITESSE, nb_grains, RAYON, Agauche, Cgauche, Adroite, Cdroite, paroiGauche, paroiDroite, debut_du_trou, hauteur_bac, largeur_bac_gauche, limite_gauche, limite_droite, nb_temps, pas_de_temps, GRAINS_PASSES)
