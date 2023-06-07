@@ -682,7 +682,7 @@ if __name__ == "__main__":
     nb_grains = app.nbGrains
     rayon = 5e-3 #m
     rho = 770 #kg/m3
-    RAYON = np.random.uniform(low=rayon*0.8, high=rayon*1.4, size=nb_grains)
+    RAYON = np.random.uniform(low=rayon*0.8, high=rayon*1.2, size=nb_grains)
     MASSE = rho * 4/3 * pi * RAYON**3
     raideur_normale = rho #N/m
     raideur_tangentielle = (3/5)*raideur_normale #N/m
@@ -718,6 +718,7 @@ if __name__ == "__main__":
     mise_a_jour = np.array([1 for i in range(nb_grains)])  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
     mise_a_jour = np.copy(mise_a_jour)
 #-----------------------------------------------------------------------------------------------------------------------------------------------
+    # SILO:
     # Definition bac de réception
     hauteur_bac = app.hauteurBac #m
     largeur_bac_gauche = app.largeurBac/2 #m
