@@ -724,6 +724,12 @@ if __name__ == "__main__":
     limite_gauche = app.limite_gauche #m
     limite_droite = app.limite_droite #m
     coefficient_frottement = 0.4
+    # Définition de la grille
+    c = 3*rayon #pas d'espace de la grille en m
+    # On définit une grille pour discrétiser l'espace selon le pas d'espace c, a chaque case on met la liste des grains qui sont dans cette case
+    nb_cases_x = int((limite_droite - limite_gauche)/c) + 2
+    nb_cases_y = int((limite_haut - limite_bas)/c) + 2
+    GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=int) #on définit une grille vide #ancienne version : GRILLE = {(i,j):[] for i in range(int(limite_gauche/c)-1, int(limite_droite/c)+2) for j in range(int(limite_bas/c)-1, int(limite_haut/c)+2)}
 #-----------------------------------------------------------------------------------------------------------------------------------------------
     # TABLEAUX DE DONNEES:
     POSITION = np.zeros((nb_temps, nb_grains, 2))   
@@ -740,19 +746,12 @@ if __name__ == "__main__":
     mise_a_jour = np.array([1 for i in range(nb_grains)])  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
     mise_a_jour = np.copy(mise_a_jour)
 #-----------------------------------------------------------------------------------------------------------------------------------------------
+    # SILO:
     # Definition bac de réception
     hauteur_bac = app.hauteurBac #m
     largeur_bac_gauche = app.largeurBac/2 #m
     largeur_bac_droite = app.largeurBac/2 #m
-    # Définition de la grille
-    c = 3*rayon #pas d'espace de la grille en m
-    # On définit une grille pour discrétiser l'espace selon le pas d'espace c, a chaque case on met la liste des grains qui sont dans cette case
-    nb_cases_x = int((limite_droite - limite_gauche)/c) + 2
-    nb_cases_y = int((limite_haut - limite_bas)/c) + 2
-    GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=int) #on définit une grille vide #ancienne version : GRILLE = {(i,j):[] for i in range(int(limite_gauche/c)-1, int(limite_droite/c)+2) for j in range(int(limite_bas/c)-1, int(limite_haut/c)+2)}
-#-----------------------------------------------------------------------------------------------------------------------------------------------
     # On définit les droites des parois des silos comme des droites de la forme y = Ax + C afin de mettre sous la forme -Ax + y - C = 0
-
     CoeffDir = app.CoeffDir
     OrdOrigine = app.OrdOrigine
     debut_du_trou = app.debutTrou
