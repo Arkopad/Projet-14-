@@ -344,7 +344,7 @@ def maj_grille(GRILLE, POSITION, indice_temps, limite_gauche, limite_bas, mise_a
             # On associe à chaque case de la grille les grains qui sont dans cette case
             # Probleme car pos_case peut etre negatif pour ca on déplace le repere
                 pos_case = (int((POSITION[indice_temps, grain, 0] + limite_gauche)/c), int((POSITION[indice_temps,grain,1]+ limite_bas)/c))
-                GRILLE[pos_case[0], pos_case[1], grain] = 1
+                GRILLE[pos_case[0], pos_case[1], grain] = True
 
     return GRILLE
 
@@ -605,7 +605,7 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                             VITESSE[indice_temps, grain1] = np.array([0.0,0.0])
                             ACCELERATION[indice_temps, grain1] = np.array([0.0,0.0])
                             VITESSE_DEMI_PAS[indice_temps, grain1] = np.array([0.0,0.0])
-                            mise_a_jour[grain1] = 0
+                            mise_a_jour[grain1] = False
                     
                     # Rencontre avec un autre grain ?
                     else:
@@ -725,7 +725,7 @@ if __name__ == "__main__":
     # On définit une grille pour discrétiser l'espace selon le pas d'espace c, a chaque case on met la liste des grains qui sont dans cette case
     nb_cases_x = int((limite_droite - limite_gauche)/c) + 2
     nb_cases_y = int((limite_haut - limite_bas)/c) + 2
-    GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=int) #on définit une grille vide #ancienne version : GRILLE = {(i,j):[] for i in range(int(limite_gauche/c)-1, int(limite_droite/c)+2) for j in range(int(limite_bas/c)-1, int(limite_haut/c)+2)}
+    GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=bool) #on définit une grille vide #ancienne version : GRILLE = {(i,j):[] for i in range(int(limite_gauche/c)-1, int(limite_droite/c)+2) for j in range(int(limite_bas/c)-1, int(limite_haut/c)+2)}
 #-----------------------------------------------------------------------------------------------------------------------------------------------
     # TABLEAUX DE DONNEES:
     POSITION = np.zeros((nb_temps, nb_grains, 2))   
@@ -739,7 +739,7 @@ if __name__ == "__main__":
     GRAINS_PASSES = np.zeros(nb_temps) # liste des grains qui sont passés par le trou à chaque instant
     IS_GRAIN_PASSE = np.zeros(nb_grains, dtype=bool) # liste de booléens qui permet de savoir si le grain est déjà passé par le trou ou pas
 
-    mise_a_jour = np.array([1 for i in range(nb_grains)])  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
+    mise_a_jour = np.array([True for i in range(nb_grains)], dtype=bool)  #liste qui permet de savoir si on doit mettre à jour le grain ou pas
 #-----------------------------------------------------------------------------------------------------------------------------------------------
     # SILO:
     # Definition bac de réception
@@ -827,7 +827,7 @@ if __name__ == "__main__":
         #On met à jour la grille:
         if indice_temps % 5 == 0:
             # Pour éviter les doublons dans la prochaine case de la grille on la réinitialise:
-            GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=int)
+            GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=bool)
             GRILLE = maj_grille(GRILLE, POSITION, indice_temps, limite_gauche, limite_bas, mise_a_jour, c)
         
         # Mise à jour des contacts:
