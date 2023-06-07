@@ -343,12 +343,8 @@ def maj_grille(GRILLE, POSITION, indice_temps, limite_gauche, limite_bas, mise_a
         if maj:
             # On associe à chaque case de la grille les grains qui sont dans cette case
             # Probleme car pos_case peut etre negatif pour ca on déplace le repere
-            try:
                 pos_case = (int((POSITION[indice_temps, grain, 0] + limite_gauche)/c), int((POSITION[indice_temps,grain,1]+ limite_bas)/c))
                 GRILLE[pos_case[0], pos_case[1], grain] = 1
-            except:
-                print(pos_case)
-                print(POSITION[indice_temps, grain])
 
     return GRILLE
 
