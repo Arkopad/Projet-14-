@@ -721,7 +721,7 @@ if __name__ == "__main__":
     limite_droite = app.limite_droite #m
     coefficient_frottement = 0.4
     # Définition de la grille
-    c = 3*rayon #pas d'espace de la grille en m
+    c = 5*rayon #pas d'espace de la grille en m
     # On définit une grille pour discrétiser l'espace selon le pas d'espace c, a chaque case on met la liste des grains qui sont dans cette case
     nb_cases_x = int((limite_droite - limite_gauche)/c) + 2
     nb_cases_y = int((limite_haut - limite_bas)/c) + 2
