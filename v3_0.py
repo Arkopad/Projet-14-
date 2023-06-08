@@ -339,7 +339,7 @@ def calcul_grains_passes(GRAINS_PASSES, IS_GRAIN_PASSE, POSITION, debut_du_trou,
 
 def maj_grille(GRILLE, POSITION, indice_temps, limite_gauche, limite_bas, mise_a_jour, c):
     """
-    Focntion d'actulaisation de la grille.
+    Fonction d'actulaisation de la grille.
 
     Paramètres
     ==========
