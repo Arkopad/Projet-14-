@@ -822,7 +822,7 @@ if __name__ == "__main__":
         # Actualisation du temps
         temps += pas_de_temps
 
-        # Actualisation de la grille, de la position et de la vitesse
+        # Actualisation de la position et de la vitesse
         POSITION, VITESSE = actualisation_1(POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATION, indice_temps, pas_de_temps)   
 
         #On met à jour la grille:
@@ -831,10 +831,10 @@ if __name__ == "__main__":
             GRILLE = np.zeros(( nb_cases_x , nb_cases_y, nb_grains), dtype=bool)
             GRILLE = maj_grille(GRILLE, POSITION, indice_temps, limite_gauche, limite_bas, mise_a_jour, c)
         
-        # Mise à jour des contacts:
+        # Mise à jour des deux tableaux CONTACT et ALLONGEMENT:
         CONTACT, ALLONGEMENT = maj_contact(limite_bas, CONTACT, coefficient_frottement, raideur_normale, raideur_tangentielle, GRILLE, mise_a_jour, indice_temps, nb_grains, POSITION, RAYON, Agauche, Adroite, Cgauche, Cdroite, limite_gauche, ALLONGEMENT, VITESSE, debut_du_trou, pas_de_temps, vecteur_tangent_paroi_droite, vecteur_tangent_paroi_gauche, hauteur_bac)
-        # Calcul des efforts de contact pour mise à jour des vitesses à temps k+1/2 et accélérations à temps k
         
+        # Calcul des efforts de contact pour mise à jour des vitesses à temps k+1/2 et accélérations à temps k
         mise_a_jour, ACCELERATION, VITESSE_DEMI_PAS, CONTACT, VITESSE, VITESSE_DEMI_PAS = resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jour, indice_temps, AMORTISSEMENT, POSITION, VITESSE, MASSE, RAYON, CONTACT, ALLONGEMENT, ACCELERATION, VITESSE_DEMI_PAS, nb_grains, raideur_normale, raideur_tangentielle, coefficient_trainee, vecteur_orthogonal_paroi_gauche, vecteur_orthogonal_paroi_droite, vecteur_tangent_paroi_gauche, vecteur_tangent_paroi_droite)
         
         # calcul du débit
