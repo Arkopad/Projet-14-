@@ -338,6 +338,24 @@ def calcul_grains_passes(GRAINS_PASSES, IS_GRAIN_PASSE, POSITION, debut_du_trou,
     return GRAINS_PASSES
 
 def maj_grille(GRILLE, POSITION, indice_temps, limite_gauche, limite_bas, mise_a_jour, c):
+    """
+    Focntion d'actulaisation de la grille.
+
+    Paramètres
+    ==========
+    GRILLE: np.bool, grille de l'espace.
+    POSITION: np.float, tableau de position des grains.
+    indice_temps: int, indice du temps de la boucle temporelle.
+    limite_gauche: float, limite gauche de l'espace.
+    limite_bas: float, limite bas de l'espace.
+    mise_a_jour: np.bool, liste dont les indices sont ceux des grains et la valeur booléenne indiquant s'il doit être mis jour.
+    c: float, pas d'espace.
+    
+
+    Retour
+    ======
+    GRILLE: np.bool, grille de l'espace.
+    """
     # Grille
     for grain, maj in enumerate(mise_a_jour):
         if maj:
