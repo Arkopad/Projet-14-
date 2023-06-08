@@ -373,13 +373,18 @@ def actualisation_1(POSITION, VITESSE_DEMI_PAS, VITESSE, ACCELERATION, indice_te
 
     Paramètres
     ==========
+    POSITION: np.float, tableau de position des grains.
+    VITESSE_DEMI_PAS: np.float, tableau de vitesse à demi pas de temps des grains.
+    VITESSE: np.float, tableau de vitesse des grains.
+    ACCELERATION: np.float, tableau de l'accélération des grains.
+    indice_temps: int, indice du temps de la boucle temporelle.
+    pas_de_temps: float, pas de temps de la simulation.
 
 
     Retour
     ======
-    GRILLE : np.array, grille contenant les grains
-    POSITION : np.array, position des grains
-    VITESSE : np.array, vitesse des grains
+    POSITION: np.float, tableau de position des grains.
+    VITESSE: np.float, tableau de vitesse des grains.
     """
     # Actualisation position et vitesse
     POSITION[indice_temps] = POSITION[indice_temps-1] + VITESSE_DEMI_PAS[indice_temps-1]*pas_de_temps
