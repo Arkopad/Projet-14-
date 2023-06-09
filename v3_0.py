@@ -331,7 +331,7 @@ def calcul_grains_passes(GRAINS_PASSES, IS_GRAIN_PASSE, POSITION, debut_du_trou,
     GRAINS_PASSES[indice_temps] = GRAINS_PASSES[indice_temps - 1]
 
     for grain in range(nb_grains):
-        if ((IS_GRAIN_PASSE[grain] == False) and (POSITION[indice_temps, grain, 1] < debut_du_trou) and (indice_temps < nb_temps - 1)):
+        if ((IS_GRAIN_PASSE[grain] == False) and (POSITION[indice_temps, grain, 1] < debut_du_trou)):
             GRAINS_PASSES[indice_temps] = GRAINS_PASSES[indice_temps - 1] + 1
             IS_GRAIN_PASSE[grain] = True  # Marquer le grain comme compté
 
@@ -446,43 +446,65 @@ def maj_contact(limite_bas, CONTACT, coefficient_frottement, raideur_normale, ra
                 if penetration_gauche < 0:
                     nouveau_contact[i, nb_grains, 0] = True
                     nouveau_allongement[i, nb_grains, 0] = penetration_gauche
-                    if CONTACT[i, nb_grains, 1]: # Si glissement
-                        norme_normale = -penetration_gauche * raideur_normale
-                        nouveau_allongement[i, nb_grains, 1] = coefficient_frottement * norme_normale / raideur_tangentielle
-                    else:
-                        allongement_tangentiel = ALLONGEMENT[i, nb_grains, 1]
-                        allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, vecteur_tangent_paroi_gauche, pas_de_temps, allongement_tangentiel)
+                    norme_normale = -penetration_gauche * raideur_normale
+                    # On vérifie le type de glissement contact ou pas:
+                    #Effort tangentiel:
+                    allongement_tangentiel = ALLONGEMENT[i, nb_grains, 1]
+                    allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, vecteur_tangent_paroi_gauche, pas_de_temps, allongement_tangentiel)
+                    coef_tangent = raideur_tangentielle * allongement_tangentiel
+                    norme_tangent = abs(coef_tangent)
+                    # Non Glissement
+                    if norme_tangent <= coefficient_frottement * norme_normale:
+                        # Déjà mis en false
                         nouveau_allongement[i, nb_grains, 1] = allongement_tangentiel
+                    # Oui Glissement
+                    else:
+                        nouveau_contact[i, nb_grains, 1] = True
+                        nouveau_allongement[i, nb_grains, 1] = coefficient_frottement * norme_normale / raideur_tangentielle # En mode glissement
 
                 else:
                     penetration_droite = allongement_normal_grain_paroi(pos_i, rayon_i, Adroite, Cdroite)
                     if penetration_droite < 0:
                         nouveau_contact[i, nb_grains+1, 0] = True
                         nouveau_allongement[i, nb_grains+1, 0] = penetration_droite
-                        if CONTACT[i, nb_grains+1, 1]: # Si glissement
-                            norme_normale = -penetration_droite * raideur_normale
-                            nouveau_allongement[i, nb_grains+1, 1] = coefficient_frottement * norme_normale / raideur_tangentielle
-
-                        else:
-                            allongement_tangentiel = ALLONGEMENT[i, nb_grains+1, 1]
-                            allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, vecteur_tangent_paroi_droite, pas_de_temps, allongement_tangentiel)
+                        norme_normale = -penetration_droite * raideur_normale
+                        # On vérifie le type de glissement contact ou pas:
+                        #Effort tangentiel:
+                        allongement_tangentiel = ALLONGEMENT[i, nb_grains+1, 1]
+                        allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, vecteur_tangent_paroi_droite, pas_de_temps, allongement_tangentiel)
+                        coef_tangent = raideur_tangentielle * allongement_tangentiel
+                        norme_tangent = abs(coef_tangent)
+                        # Non Glissement
+                        if norme_tangent <= coefficient_frottement * norme_normale:
+                            # Déjà mis en false
                             nouveau_allongement[i, nb_grains+1, 1] = allongement_tangentiel
-            
+                        # Oui Glissement
+                        else:
+                            nouveau_contact[i, nb_grains+1, 1] = True
+                            nouveau_allongement[i, nb_grains+1, 1] = coefficient_frottement * norme_normale / raideur_tangentielle # En mode glissement
+
             # Contact avec le bac ?
             else:
                 distance_bac = pos_i[1] - hauteur_bac
                 penetration_bac = distance_bac - rayon_i
                 if penetration_bac < 0:
-                    # Contact avec le bac:
                     nouveau_contact[i, nb_grains+2, 0] = True
                     nouveau_allongement[i, nb_grains+2, 0] = penetration_bac
-                    if CONTACT[i, nb_grains+2, 1]: # Si glissement
-                        norme_normale = -penetration_droite * raideur_normale
-                        nouveau_allongement[i, nb_grains+2, 1] = coefficient_frottement * norme_normale / raideur_tangentielle
-                    else:
-                        allongement_tangentiel = ALLONGEMENT[i, nb_grains+2, 1]
-                        allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, np.array([-1.0, 0.0]), pas_de_temps, allongement_tangentiel)
+                    norme_normale = -penetration_bac * raideur_normale
+                    # On vérifie le type de glissement contact ou pas:
+                    #Effort tangentiel:
+                    allongement_tangentiel = ALLONGEMENT[i, nb_grains+2, 1]
+                    allongement_tangentiel = allongement_tangentiel_grain_paroi(vitesse_i, np.array((1.0,0.0)), pas_de_temps, allongement_tangentiel)
+                    coef_tangent = raideur_tangentielle * allongement_tangentiel
+                    norme_tangent = abs(coef_tangent)
+                    # Non Glissement
+                    if norme_tangent <= coefficient_frottement * norme_normale:
+                        # Déjà mis en false
                         nouveau_allongement[i, nb_grains+2, 1] = allongement_tangentiel
+                    # Oui Glissement
+                    else:
+                        nouveau_contact[i, nb_grains+2, 1] = True
+                        nouveau_allongement[i, nb_grains+2, 1] = coefficient_frottement * norme_normale / raideur_tangentielle # En mode glissement
 
 
             # Contact avec un autre grain ?
@@ -496,15 +518,23 @@ def maj_contact(limite_bas, CONTACT, coefficient_frottement, raideur_normale, ra
 
                     allongement_normal = allongement_normal_grain_grain(pos_i, pos_j, rayon_i, rayon_j)
                     if allongement_normal < 0:
-                        nouveau_contact[i, j] = True
+                        nouveau_contact[i, j, 0] = True
                         nouveau_allongement[i, j, 0] = allongement_normal
-                        if CONTACT[i, j, 1]: # Si glissement
-                            norme_normale = -allongement_normal * raideur_normale
-                            nouveau_allongement[i, j, 1] = coefficient_frottement * norme_normale / raideur_tangentielle
-                        else:
-                            allongement_tangentiel = ALLONGEMENT[i, j, 1]
-                            allongement_tangentiel = allongement_tangentiel_grain_grain(pos_i, pos_j, vitesse_i, vitesse_j, pas_de_temps, allongement_tangentiel)
+                        norme_normale = -allongement_normal * raideur_normale
+                        # On vérifie le type de glissement contact ou pas:
+                        #Effort tangentiel:
+                        allongement_tangentiel = ALLONGEMENT[i, j, 1]
+                        allongement_tangentiel = allongement_tangentiel_grain_grain(pos_i, pos_j, vitesse_i, vitesse_j, pas_de_temps, allongement_tangentiel)
+                        coef_tangent = raideur_tangentielle * allongement_tangentiel
+                        norme_tangent = abs(coef_tangent)
+                        # Non Glissement
+                        if norme_tangent <= coefficient_frottement * norme_normale:
+                            # Déjà mis en false
                             nouveau_allongement[i, j, 1] = allongement_tangentiel
+                        # Oui Glissement
+                        else:
+                            nouveau_contact[i, j, 1] = True
+                            nouveau_allongement[i, j, 1] = coefficient_frottement * norme_normale / raideur_tangentielle # En mode glissement
 
     
     return nouveau_contact, nouveau_allongement
@@ -563,15 +593,13 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                         force_contact += -amortissement_grain1 * derivee_amortissement * vecteur_orthogonal_paroi_gauche
                         #Effort tangentiel:
                         coef_tangent = raideur_tangentielle * allongement_tangentiel
-                        norme_tangent = abs(coef_tangent)
                         # Glissement
-                        if norme_tangent <= coefficient_frottement * norme_normale:
+                        if CONTACT[grain1, nb_grains, 1]:
                             force_tangentielle = -coef_tangent * vecteur_tangent_paroi_gauche
                             force_contact += force_tangentielle
                         else:
                             force_tangentielle = np.sign(-coef_tangent) * coefficient_frottement * norme_normale * vecteur_tangent_paroi_gauche
                             force_contact += force_tangentielle
-                            CONTACT[grain1, nb_grains, 1] = True # Maj glissement
 
 
                     # Paroi droite
@@ -588,15 +616,13 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                         force_contact += -amortissement_grain1 * derivee_amortissement * vecteur_orthogonal_paroi_droite
                         # Effort tangentiel:
                         coef_tangent = raideur_tangentielle * allongement_tangentiel
-                        norme_tangent = abs(coef_tangent)
                         # Glissement
-                        if norme_tangent <= coefficient_frottement * norme_normale:
+                        if CONTACT[grain1, nb_grains+1, 1]:
                             force_tangentielle = -coef_tangent * vecteur_tangent_paroi_droite
                             force_contact += force_tangentielle
                         else:
                             force_tangentielle = np.sign(-coef_tangent) * coefficient_frottement * norme_normale * vecteur_tangent_paroi_droite
                             force_contact += force_tangentielle
-                            CONTACT[grain1, nb_grains+1, 1] = True # Maj glissement
                     
                     # Bac
                     elif contact == nb_grains+2:
@@ -614,15 +640,13 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                             force_contact += -amortissement_grain1 * derivee_amortissement * np.array([0.0, 1.0])
                             # Effort tangentiel:
                             coef_tangent = raideur_tangentielle * allongement_tangentiel
-                            norme_tangent = abs(coef_tangent)
                         # Glissement
-                            if norme_tangent <= coefficient_frottement * norme_normale:
+                            if CONTACT[grain1, nb_grains+2, 1]:
                                 force_tangentielle = -coef_tangent * np.array([-1.0, 0.0])
                                 force_contact += force_tangentielle
                             else:
                                 force_tangentielle = np.sign(-coef_tangent) * coefficient_frottement * norme_normale * np.array([-1.0, 0.0])
                                 force_contact += force_tangentielle
-                                CONTACT[grain1, nb_grains+2, 1] = True # Maj glissement
 
                         # Si la physique du bac n'est pas activé:        
                         else:
@@ -651,15 +675,13 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                         force_contact += - amortissement_grain1 * derivee_amortissement * vecteur_normal_inter_grain
                         # Effort tangentiel:
                         coef_tangent = raideur_tangentielle * allongement_tangentiel
-                        norme_tangent = abs(coef_tangent)
                        # Glissement
-                        if norme_tangent <= coefficient_frottement * norme_normale:
+                        if CONTACT[grain1, grain2, 1]:
                             force_tangentielle = -coef_tangent * vecteur_tangentiel_inter_grain
                             force_contact += force_tangentielle
                         else:
                             force_tangentielle = np.sign(-coef_tangent) * coefficient_frottement * norme_normale * vecteur_tangentiel_inter_grain
                             force_contact += force_tangentielle
-                            CONTACT[grain1, grain2, 1] = True # il y a glissement
                     
                     # Air:
                     # Force de trainée:
@@ -724,11 +746,11 @@ if __name__ == "__main__":
     nb_grains = app.nbGrains
     rayon = 5e-3 #m
     rho = 770 #kg/m3
-    RAYON = np.random.uniform(low=rayon*0.8, high=rayon*1.2, size=nb_grains)
+    RAYON = np.random.uniform(low=rayon*0.6, high=rayon*1.4, size=nb_grains)
     MASSE = rho * 4/3 * pi * RAYON**3
     raideur_normale = rho #N/m
-    raideur_tangentielle = (3/5)*raideur_normale #N/m
-    coefficient_trainee = 2
+    raideur_tangentielle = raideur_normale #N/m
+    coefficient_trainee = 0.47
     AMORTISSEMENT = np.sqrt(raideur_normale*MASSE)*0.2
 #-----------------------------------------------------------------------------------------------------------------------------------------------
     # TEMPS
@@ -743,7 +765,7 @@ if __name__ == "__main__":
     limite_haut = app.limite_haut #m
     limite_gauche = app.limite_gauche #m
     limite_droite = app.limite_droite #m
-    coefficient_frottement = 0.4
+    coefficient_frottement = 0.4    
     # Définition de la grille
     c = 5*rayon #pas d'espace de la grille en m
     # On définit une grille pour discrétiser l'espace selon le pas d'espace c, a chaque case on met la liste des grains qui sont dans cette case
