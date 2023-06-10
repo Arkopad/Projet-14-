@@ -297,7 +297,7 @@ def allongement_tangentiel_grain_grain(position_i, position_j, vitesse_i, vitess
     return allongement_tangentiel + produit_scalaire*pas_de_temps
 
 @njit
-def derivee_allongement_normal_grain_grain(vitesse_i, vitesse_j, vecteur_normal):
+def derivee_allongement_grain_grain(vitesse_i, vitesse_j, vecteur):
     """
     Calcul de la dérivée de l'allongement/distance normal à partir de l'équation
     Paramètres
@@ -307,15 +307,15 @@ def derivee_allongement_normal_grain_grain(vitesse_i, vitesse_j, vecteur_normal)
     ======
     """
     vitesse_relative = vitesse_i - vitesse_j
-    derivee_allongement = np.dot(vitesse_relative, vecteur_normal)
+    derivee_allongement = np.dot(vitesse_relative,vecteur)
         
     return derivee_allongement
 
 @njit
-def derivee_allongement_normal_grain_paroi(vitesse_i, vecteur_normal_paroi):
+def derivee_allongement_grain_paroi(vitesse_i, vecteur_paroi):
     """
     """
-    return np.dot(vitesse_i, vecteur_normal_paroi)
+    return np.dot(vitesse_i, vecteur_paroi)
 
 def calcul_grains_passes(GRAINS_PASSES, IS_GRAIN_PASSE, POSITION, debut_du_trou, nb_grains, nb_temps, indice_temps):
     """
@@ -579,11 +579,14 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                         Fn = -raideur_normale * penetration_gauche
                         force_resultante += Fn * vecteur_orthogonal_paroi_gauche
                         #Amortissement:
-                        derivee_amortissement = derivee_allongement_normal_grain_paroi(vitesse_grain1, vecteur_orthogonal_paroi_gauche)
+                        derivee_amortissement = derivee_allongement_grain_paroi(vitesse_grain1, vecteur_orthogonal_paroi_gauche)
                         force_resultante += -amortissement_grain1 * derivee_amortissement * vecteur_orthogonal_paroi_gauche
                         
                         #Effort tangentiel:
                         Ft = -raideur_tangentielle * allongement_tangentiel
+                        #Amortissement:
+                        #derivee_amortissement = derivee_allongement_grain_paroi(vitesse_grain1, vecteur_tangent_paroi_gauche)
+                        #force_resultante += -amortissement_grain1 * derivee_amortissement * vecteur_tangent_paroi_gauche
                         # Glissement
                         if glissement:
                             force_tangentielle = np.sign(Ft) * coefficient_frottement * abs(Fn) * vecteur_tangent_paroi_gauche
@@ -602,11 +605,14 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                         Fn = -raideur_normale * penetration_droite
                         force_resultante += Fn* vecteur_orthogonal_paroi_droite
                         # Amortissement:
-                        derivee_amortissement = derivee_allongement_normal_grain_paroi(vitesse_grain1, vecteur_orthogonal_paroi_droite)
+                        derivee_amortissement = derivee_allongement_grain_paroi(vitesse_grain1, vecteur_orthogonal_paroi_droite)
                         force_resultante += -amortissement_grain1 * derivee_amortissement * vecteur_orthogonal_paroi_droite
                         
                         # Effort tangentiel:
                         Ft = -raideur_tangentielle * allongement_tangentiel
+                        #Amortissement:
+                        #derivee_amortissement = derivee_allongement_grain_paroi(vitesse_grain1, vecteur_tangent_paroi_droite)
+                        #force_resultante += -amortissement_grain1 * derivee_amortissement * vecteur_tangent_paroi_droite
                         # Glissement
                         if glissement:
                             force_tangentielle = np.sign(Ft) * coefficient_frottement * abs(Fn) * vecteur_tangent_paroi_droite
@@ -628,11 +634,14 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                             Fn = -raideur_normale * penetration_bac
                             force_resultante += Fn * vecteur_normal_bac
                             # Amortissement:
-                            derivee_amortissement = derivee_allongement_normal_grain_paroi(vitesse_grain1, vecteur_normal_bac)
+                            derivee_amortissement = derivee_allongement_grain_paroi(vitesse_grain1, vecteur_normal_bac)
                             force_resultante += -amortissement_grain1 * derivee_amortissement * vecteur_normal_bac
                             
                             # Effort tangentiel:
                             Ft = -raideur_tangentielle * allongement_tangentiel
+                             #Amortissement:
+                            #derivee_amortissement = derivee_allongement_grain_paroi(vitesse_grain1, vecteur_tangent_bac)
+                            #force_resultante += -amortissement_grain1 * derivee_amortissement * vecteur_tangent_bac
                             # Glissement
                             if glissement:
                                 force_tangentielle = np.sign(Ft) * coefficient_frottement * abs(Fn) * vecteur_tangent_bac
@@ -666,11 +675,14 @@ def resultante_et_actualisation_2(activatebox, coefficient_frottement, mise_a_jo
                         Fn = -raideur_normale * allongement_normal
                         force_resultante += Fn * vecteur_normal_inter_grain
                         # Amortissement:
-                        derivee_amortissement = derivee_allongement_normal_grain_grain(vitesse_grain1, vitesse_grain2, vecteur_normal_inter_grain)
+                        derivee_amortissement = derivee_allongement_grain_grain(vitesse_grain1, vitesse_grain2, vecteur_normal_inter_grain)
                         force_resultante += - amortissement_grain1 * derivee_amortissement * vecteur_normal_inter_grain
                         
                         # Effort tangentiel:
                         Ft = -raideur_tangentielle * allongement_tangentiel
+                        # Amortissement:
+                        #derivee_amortissement = derivee_allongement_grain_grain(vitesse_grain1, vitesse_grain2, vecteur_tangentiel_inter_grain)
+                        #force_resultante += - amortissement_grain1 * derivee_amortissement * vecteur_tangentiel_inter_grain
                         # Glissement
                         if glissement:
                             force_tangentielle = np.sign(Ft) * coefficient_frottement * Fn * vecteur_tangentiel_inter_grain
@@ -741,7 +753,7 @@ if __name__ == "__main__":
     RAYON = np.random.uniform(low=rayon*0.8, high=rayon*1.2, size=nb_grains)
     MASSE = rho * 4/3 * pi * RAYON**3
     raideur_normale = rho #N/m
-    raideur_tangentielle = (1/2)*raideur_normale #N/m
+    raideur_tangentielle = raideur_normale #N/m
     coefficient_trainee = 0.47
     AMORTISSEMENT = np.sqrt(raideur_normale*MASSE)*0.3
 #-----------------------------------------------------------------------------------------------------------------------------------------------
@@ -757,7 +769,7 @@ if __name__ == "__main__":
     limite_haut = app.limite_haut #m
     limite_gauche = app.limite_gauche #m
     limite_droite = app.limite_droite #m
-    coefficient_frottement = 0.2 
+    coefficient_frottement = 0.2
     # Définition de la grille
     c = 5*rayon #pas d'espace de la grille en m
     # On définit une grille pour discrétiser l'espace selon le pas d'espace c, a chaque case on met la liste des grains qui sont dans cette case
@@ -843,7 +855,7 @@ if __name__ == "__main__":
     print(f"masse moyenne des grains: {np.mean(MASSE):.2E} kg.")
     print(f"rayon moyen des grains: {np.mean(RAYON):.2E} m.")
     print(f"amoortissement moyen: {np.mean(AMORTISSEMENT):.2E} Ns/m.")
-    print(f"temps de la simulation {duree_simulation} s")
+    print(f"durée de la simulation {duree_simulation} s")
     print(f"coefficient de frotemment:", coefficient_frottement)
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------

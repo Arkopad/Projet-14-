@@ -20,11 +20,12 @@ class App():
         moniteurWidth = self.racine.winfo_screenwidth() # Largeur de l'écran
         self.racine.geometry(f"1000x950+{moniteurWidth//2-500}+{0}")
         self.racine.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.activateBoxPhysic = tk.IntVar()
         self.getParametres()
         self.limite_bas = -1  #m
         self.limite_haut = 2 #m
-        self.limite_gauche = -1.5 #m
-        self.limite_droite = 1.5 #m
+        self.limite_gauche = -2 #m
+        self.limite_droite = 2 #m
         self.largeur_silo_gauche = -1 #m
         self.largeur_silo_droite = 1 #m
         # On définit les droites des parois des silos comme des droites de la forme y = Ax + C afin de mettre sous la forme -Ax + y - C = 0
@@ -35,7 +36,6 @@ class App():
         self.run = True
 
         self.displayGrain = tk.IntVar()
-        self.activateBoxPhysic = tk.IntVar()
 
         self.creerWidgets()
 
@@ -132,7 +132,7 @@ class App():
 
         if parametres == ['']:                                      # Si le fichier est vide
             
-            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4", "50", "1.5","10"]   # On initialise les paramètres
+            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4", "50", "1.5","10","0"]   # On initialise les paramètres
 
         try:                                                        # On essaye de convertir les paramètres en entier
 
@@ -144,11 +144,12 @@ class App():
             self.nbGrains = float(parametres[5])
             self.hauteur = float(parametres[6])
             self.dureeSimulation = float(parametres[7])
+            self.activateBoxPhysic.set(parametres[8])
         
         except Exception as erreur:                                 # Si les paramètres ne sont pas des entiers
             
             print("Erreur : le fichier parametres.csv est corrompu, les paramètres ont été réinitialisés\nDétail de l'erreur : ", erreur)   # On affiche un message d'erreur
-            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4", "50", "1.5","10"]            # On initialise les paramètres
+            parametres = ["-1.6667", "0.5", "0.7", "0.5", "0.4", "50", "1.5","10","0"]            # On initialise les paramètres
             fichier = open("parametres.csv", "w+")                  # On ouvre le fichier en écriture
             fichier.write(";".join(parametres))                     # On écrit les paramètres dans le fichier
             fichier.close()                                         # On ferme le fichier
@@ -163,14 +164,15 @@ class App():
         """
  
         fichier = open("parametres.csv", "w+")          # On ouvre le fichier parametres.csv en écriture et on le crée s'il n'existe pas et on écrit les paramètres dedans
-        fichier.write("{CoeffDir};{OrdOrigine};{debutTrou};{largeurBac};{hauteurBac};{nbGrains};{hauteur};{dureeSimulation}".format(CoeffDir = self.CoeffDir, 
+        fichier.write("{CoeffDir};{OrdOrigine};{debutTrou};{largeurBac};{hauteurBac};{nbGrains};{hauteur};{dureeSimulation};{activateBoxPhysic}".format(CoeffDir = self.CoeffDir, 
                                                                                                   OrdOrigine = self.OrdOrigine, 
                                                                                                   debutTrou = self.debutTrou, 
                                                                                                   largeurBac = self.largeurBac, 
                                                                                                   hauteurBac = self.hauteurBac,
                                                                                                   nbGrains = self.nbGrains,
                                                                                                   hauteur = self.hauteur,
-                                                                                                  dureeSimulation = self.dureeSimulation))
+                                                                                                  dureeSimulation = self.dureeSimulation,
+                                                                                                  activateBoxPhysic = self.activateBoxPhysic.get()))
         fichier.close()                                 # On ferme le fichier
         self.kill()
         plt.close('all')
